@@ -1,16 +1,35 @@
 extern crate termion;
+extern crate bitmex;
+extern crate futures;
+extern crate tokio;
+extern crate simplelog;
+
 use termion::raw::IntoRawMode;
 use termion::{async_stdin, color, style};
 use std::io::{stdout, Read, Write};
 use std::time::{Duration};
 use std::thread::sleep;
+use std::fs;
+
+use bitmex::model::user::{GetUserWalletRequest};
+use bitmex::{BitMEX};
+use tokio::runtime::current_thread::Runtime;
+use simplelog::*;
 
 fn main() {
+    let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
+
     let mut stdin = async_stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
 
     write!(stdout, "{}", termion::cursor::Hide).unwrap();
     stdout.flush().unwrap();
+
+    let mut rt = Runtime::new().unwrap();
+    let credentials_file = fs::read_to_string("bitmex_credentials").expect("Could not open credentials file");
+    let credentials = credentials_file.lines().collect::<Vec<&str>>();
+    let bm = BitMEX::with_credential(credentials.get(0).expect("Missing crendentials Key"), credentials.get(1).expect("Missing crendentials Secret"));
+    let wallet = rt.block_on(bm.get_user_wallet(GetUserWalletRequest { ..Default::default() }).unwrap());
 
     let mut quit = false;
     while !quit {
@@ -22,6 +41,7 @@ fn main() {
                 red   = color::Fg(color::Red),
                 green = color::Fg(color::Green),
                 reset = style::Reset).unwrap();
+        writeln!(stdout, "{:?}", wallet).unwrap();
         writeln!(stdout, "q to exit. Type stuff, use alt, and so on.",).unwrap();
         stdout.flush().unwrap();
 
