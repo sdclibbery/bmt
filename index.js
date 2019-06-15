@@ -13,36 +13,49 @@ const bitmex = new BitmexRequest({
 
 c.side = (side,t) => side=='Sell'?c.redBright(t):c.greenBright(t)
 c.sign = (x) => x<0?c.redBright(x):c.greenBright(x)
+c.orange = c.keyword('orange')
+c.purple = c.keyword('purple')
 const units = (x) => x/100000000
 
+const data = {
+  lastTrade: {},
+  wallet: [],
+  spread: {lo:{},hi:{}},
+  openOrders: [],
+  openPositions: [],
+}
+
+const display = () => {
+  console.log('\033[2J\033[1;1H')
+  console.log(`Testnet: ${credentials.testnet}`)
+  const t = data.lastTrade
+  console.log(`last price ${c.side(t.side, t.price)} ${symbol}`)
+  console.log(`wallet ${data.wallet.map(({walletBalance,currency}) => `${c.blueBright(units(walletBalance))}${currency}`).join('/')}`)
+  const s = data.spread
+  console.log(`spread ${c.greenBright(s.lo.price)} - ${c.redBright(s.hi.price)} ${symbol}`)
+  data.openOrders.map(({side,price,size,orderQty,symbol}) => {
+    console.log(`open order ${c.side(side,side)} ${c.side(side,orderQty)} ${symbol} @ ${price}`)
+  })
+  data.openPositions.map(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
+    console.log(
+`open position ${symbol} ${c.sign(currentQty)} x${leverage}
+  entry ${c.orange(avgEntryPrice)} mark ${c.purple(markPrice)} liq ${c.redBright(liquidationPrice)}
+  pnl ${c.sign(units(unrealisedPnl))}(${c.sign(unrealisedRoePcnt*100)}%)/${c.sign(units(realisedPnl))} comm ${c.redBright(commission*100)}%`)
+  })
+  console.log('')
+}
+
 bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
-  .then(([{price,side}]) => {
-    console.log(`last price ${c.side(side, price)} ${symbol}`)
-  }).catch(console.log)
+  .then(([t]) => { data.lastTrade = t }).then(display).catch(console.log)
 
 bitmex.request('GET', '/user/walletSummary', {  })
-  .then(types => {
-    console.log(`wallet ${types.map(({walletBalance,currency}) => `${c.blueBright(units(walletBalance))}${currency}`).join('/')}`)
-  }).catch(console.log)
+  .then(w => { data.wallet = w }).then(display).catch(console.log)
 
 bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
-  .then(([o1,o2]) => {
-    console.log(`spread ${c.greenBright(o2.price)} - ${c.redBright(o1.price)} ${symbol}`)
-  }).catch(console.log)
+  .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }).then(display).catch(console.log)
 
 bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
-  .then(orders => {
-    orders.map(({side,price,size,orderQty,symbol,transactTime}) => {
-      console.log(`open order ${side} ${orderQty} ${symbol} @ ${price} @ ${transactTime}`)
-    })
-  }).catch(console.log)
+  .then(orders => { data.openOrders = orders }).then(display).catch(console.log)
 
 bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
-  .then(positions => {
-    positions.map(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
-      console.log(
-`open position ${symbol} ${c.sign(currentQty)} x${leverage}
-  entry ${avgEntryPrice} mark ${markPrice} liq ${liquidationPrice}
-  pnl ${c.sign(units(unrealisedPnl))}(${c.sign(unrealisedRoePcnt*100)}%)/${c.sign(units(realisedPnl))} comm ${c.redBright(commission)}`)
-    })
-  }).catch(console.log)
+.then(positions => { data.openPositions = positions }).then(display).catch(console.log)

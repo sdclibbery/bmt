@@ -4,7 +4,7 @@
 x Show current price/spread/order history
 x Show wallet/position/order info
 x Colours
-* units: convert from satoshis or whatever they are
+x units: convert from satoshis or whatever they are
 * Close an open position
  * Track spread to get best limit exit
 * Open a position
