@@ -7,12 +7,13 @@ const symbol = 'XBTUSD'
 const bitmex = new BitmexRequest({
     apiKey: credentials.key,
     apiSecret: credentials.secret,
-    testnet: true,
+    testnet: credentials.testnet,
     retryTimes: 2,
 })
 
 c.side = (side,t) => side=='Sell'?c.redBright(t):c.greenBright(t)
 c.sign = (x) => x<0?c.redBright(x):c.greenBright(x)
+const units = (x) => x/100000000
 
 bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
   .then(([{price,side}]) => {
@@ -21,7 +22,7 @@ bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
 
 bitmex.request('GET', '/user/walletSummary', {  })
   .then(types => {
-    console.log(`wallet ${types.map(({walletBalance,currency}) => `${c.blueBright(walletBalance)}${currency}`).join('/')}`)
+    console.log(`wallet ${types.map(({walletBalance,currency}) => `${c.blueBright(units(walletBalance))}${currency}`).join('/')}`)
   }).catch(console.log)
 
 bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
@@ -42,6 +43,6 @@ bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true }
       console.log(
 `open position ${symbol} ${c.sign(currentQty)} x${leverage}
   entry ${avgEntryPrice} mark ${markPrice} liq ${liquidationPrice}
-  pnl ${c.sign(unrealisedPnl)}(${c.sign(unrealisedRoePcnt*100)}%)/${c.sign(realisedPnl)} comm ${c.redBright(commission)}`)
+  pnl ${c.sign(units(unrealisedPnl))}(${c.sign(unrealisedRoePcnt*100)}%)/${c.sign(units(realisedPnl))} comm ${c.redBright(commission)}`)
     })
   }).catch(console.log)
