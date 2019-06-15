@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/sdclibbery/bmt#readme",
   "dependencies": {
-    "bitmex-request": "0.0.2"
+    "bitmex-request": "0.0.2",
+    "chalk": "^2.4.2"
   }
 }

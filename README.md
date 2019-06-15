@@ -1,10 +1,12 @@
 # bmt
 
 ## ToDo
-* Live command line app shell
-* Show current price/spread/order history
- https://github.com/dovahcrow/bitmex-rs/blob/master/examples/ws_orderbook_trade.rs
-* Show wallet/position/order info
+x Show current price/spread/order history
+x Show wallet/position/order info
+x Colours
+* units: convert from satoshis or whatever they are
+* Close an open position
+ * Track spread to get best limit exit
 * Open a position
-* Set stop loss
-* Close a position
+ * Set stop loss
+ * Track spread to get best limit entry
