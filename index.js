@@ -1,6 +1,6 @@
 BitmexRequest = require('bitmex-request').BitmexRequest
 const credentials = require('./bitmex_credentials')
-const c = require('chalk')
+const term = require( 'terminal-kit' ).terminal
 
 const symbol = 'XBTUSD'
 
@@ -19,35 +19,61 @@ const data = {
   openPositions: [],
 }
 
+term.grabInput()
+term.fullscreen(true)
+const terminate = (code) => {
+  term.grabInput(false)
+  term.fullscreen(false)
+	term.processExit(code)
+}
 const display = () => {
-  c.side = (side,t) => side=='Sell'?c.redBright(t):c.greenBright(t)
-  c.sign = (x) => x<0?c.redBright(x):c.greenBright(x)
-  c.orange = c.keyword('orange')
-  c.purple = c.keyword('purple')
+  term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
+  term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
+  term.orange = term.color('orange')
+  term.purple = term.color('purple')
   const units = (x) => x/100000000
 
-//  console.log('\033[8S\033[2J\033[1;1H')
-  console.log(`Testnet: ${credentials.testnet}`)
+  term.moveTo(1,1)(`Testnet: ${credentials.testnet}`)('\n')
+
   const t = data.lastTrade
-  console.log(`last price ${c.side(t.side, t.price)} ${symbol}`)
-  console.log(`wallet ${data.wallet.map(({walletBalance,currency}) => `${c.blueBright(units(walletBalance))}${currency}`).join('/')}`)
+  term('last price ').side(t.side, t.price)(' ')(symbol)('\n')
+
+  term('wallet')
+  data.wallet.forEach(({walletBalance,currency}) => term(' ').brightBlue(units(walletBalance))(' ')(currency))
+  term('\n')
+
   const s = data.spread
-  console.log(`spread ${c.greenBright(s.lo.price)} - ${c.redBright(s.hi.price)} ${symbol}`)
-  data.openOrders.map(({side,price,size,orderQty,symbol}) => {
-    console.log(`open order ${c.side(side,side)} ${c.side(side,orderQty)} ${symbol} @ ${price}`)
+  term('spread ').brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
+  data.openOrders.forEach(({side,price,size,orderQty,symbol}) => {
+    term('open order ').side(side,side)(' ').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
   })
-  data.openPositions.map(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
-    console.log(
-`open position ${symbol} ${c.sign(currentQty)} x${leverage}
-  entry ${c.orange(avgEntryPrice)} mark ${c.purple(markPrice)} liq ${c.redBright(liquidationPrice)}
-  pnl ${c.sign(units(unrealisedPnl))}(${c.sign(unrealisedRoePcnt*100)}%)/${c.sign(units(realisedPnl))} comm ${c.redBright(commission*100)}%`)
+  data.openPositions.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
+    term('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
+    term('  entry ').orange(avgEntryPrice)(' mark ').purple(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
+    term('  pnl ').sign(units(unrealisedPnl))('(').sign(unrealisedRoePcnt*100)('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
-  console.log('')
+
+  term('\n')("'Q'uit")
+  if (canBuySell()) {
+    term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell")('\n')
+  }
+  if (canClose()) {
+    term('  ').brightBlue("'C'lose")('\n')
+  }
 }
+const canBuySell = () => data.openPositions.length==0
+const canClose = () => data.openPositions.length==1
+term.on('key', (name, matches, data) => {
+  const is = (c) => name == c
+	if (is('CTRL_C') || is('q')) { terminate() }
+  if (canBuySell() && is('b')) { buy() }
+  if (canBuySell() && is('s')) { sell() }
+  if (canClose() && is('c')) { close() }
+})
 
 const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
-    .then(w => { data.wallet = w }).catch(console.log)
+    .then(w => { data.wallet = w }).catch(console.error)
 }
 
 const fetchOrderBook = () => {
@@ -56,7 +82,7 @@ const fetchOrderBook = () => {
       .then(([t]) => { data.lastTrade = t }),
     bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
       .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }),
-  ]).catch(console.log)
+  ]).catch(console.error)
 }
 
 const fetchPositionStatus = () => {
@@ -65,18 +91,22 @@ const fetchPositionStatus = () => {
       .then(orders => { data.openOrders = orders }),
     bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
       .then(positions => { data.openPositions = positions }),
-  ]).catch(console.log)
+  ]).catch(console.error)
 }
 
 const limit = (side, qty, price, id) => {
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: `${id} ${Date.now()}`, symbol: symbol,
       side: side, orderQty: qty, price: price
-    }).catch(console.log)
+    }).catch(console.error)
 }
 
-fetchWallet().then(display)
-fetchOrderBook().then(display)
-fetchPositionStatus().then(display)
+display()
+fetchWallet()
+fetchOrderBook()
+fetchPositionStatus()
+setInterval(() => fetchWallet().then(display), 60000)
+setInterval(() => fetchOrderBook().then(display), 3000)
+setInterval(() => fetchPositionStatus().then(display), 10000)
 
 //limit('Sell', 10, 9010, 'Test Order').then(() => fetchPositionStatus().then(display))
