@@ -16,7 +16,7 @@ const data = {
   wallet: [],
   spread: {lo:{},hi:{}},
   openOrders: [],
-  openPositions: [],
+  openPositions: undefined,
 }
 
 term.grabInput()
@@ -33,7 +33,9 @@ const display = () => {
   term.purple = term.color('purple')
   const units = (x) => x/100000000
 
-  term.moveTo(1,1)(`Testnet: ${credentials.testnet}`)('\n')
+  term.clear().moveTo(1,1).styleReset()
+
+  term(`Testnet: ${credentials.testnet}`)('\n')
 
   const t = data.lastTrade
   term('last price ').side(t.side, t.price)(' ')(symbol)('\n')
@@ -44,16 +46,19 @@ const display = () => {
 
   const s = data.spread
   term('spread ').brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
+
   data.openOrders.forEach(({side,price,size,orderQty,symbol}) => {
     term('open order ').side(side,side)(' ').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
   })
-  data.openPositions.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
+
+  const ps = data.openPositions || []
+  ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
     term('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
     term('  entry ').orange(avgEntryPrice)(' mark ').purple(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
     term('  pnl ').sign(units(unrealisedPnl))('(').sign(unrealisedRoePcnt*100)('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
 
-  term('\n')("'Q'uit")
+  term.styleReset()('\n')("'Q'uit")
   if (canBuySell()) {
     term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell")('\n')
   }
@@ -61,8 +66,8 @@ const display = () => {
     term('  ').brightBlue("'C'lose")('\n')
   }
 }
-const canBuySell = () => data.openPositions.length==0
-const canClose = () => data.openPositions.length==1
+const canBuySell = () => data.openPositions && data.openPositions.length==0
+const canClose = () => data.openPositions && data.openPositions.length==1
 term.on('key', (name, matches, data) => {
   const is = (c) => name == c
 	if (is('CTRL_C') || is('q')) { terminate() }
