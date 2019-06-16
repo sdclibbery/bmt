@@ -26,7 +26,7 @@ const display = () => {
   c.purple = c.keyword('purple')
   const units = (x) => x/100000000
 
-  console.log('\033[8S\033[2J\033[1;1H')
+//  console.log('\033[8S\033[2J\033[1;1H')
   console.log(`Testnet: ${credentials.testnet}`)
   const t = data.lastTrade
   console.log(`last price ${c.side(t.side, t.price)} ${symbol}`)
@@ -68,6 +68,15 @@ const fetchPositionStatus = () => {
   ]).catch(console.log)
 }
 
+const limit = (side, qty, price, id) => {
+  return bitmex.request('POST', '/order', {
+      ordType: 'Limit', clOrdID: `${id} ${Date.now()}`, symbol: symbol,
+      side: side, orderQty: qty, price: price
+    }).catch(console.log)
+}
+
 fetchWallet().then(display)
 fetchOrderBook().then(display)
 fetchPositionStatus().then(display)
+
+//limit('Sell', 10, 9010, 'Test Order').then(() => fetchPositionStatus().then(display))
