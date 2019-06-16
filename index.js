@@ -11,12 +11,6 @@ const bitmex = new BitmexRequest({
     retryTimes: 2,
 })
 
-c.side = (side,t) => side=='Sell'?c.redBright(t):c.greenBright(t)
-c.sign = (x) => x<0?c.redBright(x):c.greenBright(x)
-c.orange = c.keyword('orange')
-c.purple = c.keyword('purple')
-const units = (x) => x/100000000
-
 const data = {
   lastTrade: {},
   wallet: [],
@@ -26,7 +20,13 @@ const data = {
 }
 
 const display = () => {
-  console.log('\033[20S\033[2J\033[1;1H')
+  c.side = (side,t) => side=='Sell'?c.redBright(t):c.greenBright(t)
+  c.sign = (x) => x<0?c.redBright(x):c.greenBright(x)
+  c.orange = c.keyword('orange')
+  c.purple = c.keyword('purple')
+  const units = (x) => x/100000000
+
+  console.log('\033[8S\033[2J\033[1;1H')
   console.log(`Testnet: ${credentials.testnet}`)
   const t = data.lastTrade
   console.log(`last price ${c.side(t.side, t.price)} ${symbol}`)
@@ -45,17 +45,29 @@ const display = () => {
   console.log('')
 }
 
-bitmex.request('GET', '/user/walletSummary', {  })
-  .then(w => { data.wallet = w }).then(display).catch(console.log)
+const fetchWallet = () => {
+  return bitmex.request('GET', '/user/walletSummary', {  })
+    .then(w => { data.wallet = w }).catch(console.log)
+}
 
-bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
-  .then(([t]) => { data.lastTrade = t }).then(display).catch(console.log)
+const fetchOrderBook = () => {
+  return Promise.all([
+    bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
+      .then(([t]) => { data.lastTrade = t }),
+    bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
+      .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }),
+  ]).catch(console.log)
+}
 
-bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
-  .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }).then(display).catch(console.log)
+const fetchPositionStatus = () => {
+  return Promise.all([
+    bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
+      .then(orders => { data.openOrders = orders }),
+    bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
+      .then(positions => { data.openPositions = positions }),
+  ]).catch(console.log)
+}
 
-bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
-  .then(orders => { data.openOrders = orders }).then(display).catch(console.log)
-
-bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
-.then(positions => { data.openPositions = positions }).then(display).catch(console.log)
+fetchWallet().then(display)
+fetchOrderBook().then(display)
+fetchPositionStatus().then(display)
