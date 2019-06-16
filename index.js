@@ -26,7 +26,7 @@ const data = {
 }
 
 const display = () => {
-  console.log('\033[2J\033[1;1H')
+  console.log('\033[20S\033[2J\033[1;1H')
   console.log(`Testnet: ${credentials.testnet}`)
   const t = data.lastTrade
   console.log(`last price ${c.side(t.side, t.price)} ${symbol}`)
@@ -45,11 +45,11 @@ const display = () => {
   console.log('')
 }
 
-bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
-  .then(([t]) => { data.lastTrade = t }).then(display).catch(console.log)
-
 bitmex.request('GET', '/user/walletSummary', {  })
   .then(w => { data.wallet = w }).then(display).catch(console.log)
+
+bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
+  .then(([t]) => { data.lastTrade = t }).then(display).catch(console.log)
 
 bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
   .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }).then(display).catch(console.log)
