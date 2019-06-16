@@ -10,7 +10,6 @@ x Terminal setup
  x Full screen
  x Errors still go to console
  x Respond immediately to keypresses
-! Shouldnt be allowed to open/close/buy/sell until first position data is back in
 * Close an open position - implement close() function
  * Track spread to get best limit exit
 * Open a position - implement buy()/sell() functions

@@ -32,33 +32,37 @@ const display = () => {
   term.orange = term.color('orange')
   term.purple = term.color('purple')
   const units = (x) => x/100000000
+  const begin = () => term.styleReset()
 
-  term.clear().moveTo(1,1).styleReset()
+  term.clear().moveTo(1,1)
 
-  term(`Testnet: ${credentials.testnet}`)('\n')
+  begin()(`Testnet: ${credentials.testnet}`)('\n')
 
   const t = data.lastTrade
-  term('last price ').side(t.side, t.price)(' ')(symbol)('\n')
+  begin()('last price ').side(t.side, t.price)(' ')(symbol)('\n')
 
-  term('wallet')
-  data.wallet.forEach(({walletBalance,currency}) => term(' ').brightBlue(units(walletBalance))(' ')(currency))
+  begin()('wallet')
+  const w = data.wallet.filter(({transactType}) => transactType == 'Total')[0]
+  if (w) {
+    term(' ').brightBlue(units(w.walletBalance))(' ')(w.currency)
+  }
   term('\n')
 
   const s = data.spread
-  term('spread ').brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
+  begin()('spread ').brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
 
   data.openOrders.forEach(({side,price,size,orderQty,symbol}) => {
-    term('open order ').side(side,side)(' ').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
+    begin()('open order ').side(side,side)(' ').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
   })
 
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
-    term('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
+    begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
     term('  entry ').orange(avgEntryPrice)(' mark ').purple(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
     term('  pnl ').sign(units(unrealisedPnl))('(').sign(unrealisedRoePcnt*100)('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
 
-  term.styleReset()('\n')("'Q'uit")
+  begin()('\n')("'Q'uit")
   if (canBuySell()) {
     term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell")('\n')
   }
