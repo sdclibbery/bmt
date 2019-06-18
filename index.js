@@ -13,6 +13,8 @@ const bitmex = new BitmexRequest({
     retryTimes: 2,
 })
 
+// Data
+
 const data = {
   lastTrade: {},
   wallet: [],
@@ -21,6 +23,10 @@ const data = {
   openPositions: undefined,
   status: 'Init',
 }
+const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
+const walletCurrency = () => ((data.wallet[0] || {}).currency)
+const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
+const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openOrders.length==0)
 
 // Display
 
@@ -45,11 +51,7 @@ const display = () => {
   const t = data.lastTrade
   begin()('last price ').side(t.side, t.price)(' ')(symbol)('\n')
 
-  begin()('wallet')
-  const w = data.wallet.filter(({transactType}) => transactType == 'Total')[0]
-  if (w) {
-    term(' ').brightBlue(units(w.walletBalance))(' ')(w.currency)
-  }
+  begin()('wallet')(' ').brightBlue(units(walletTotal()))(' ')(walletCurrency())
   term('\n')
 
   const s = data.spread
@@ -79,8 +81,6 @@ const display = () => {
     term('  ').brightBlue("'C'lose")('\n')
   }
 }
-const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
-const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openOrders.length==0)
 term.on('key', (name, matches, data) => {
   const is = (c) => name == c
 	if (is('CTRL_C') || is('q')) { terminate() }
@@ -107,8 +107,7 @@ const buy = () => {
   display()
   setLeverage().then(() => {
     const price = data.spread.lo.price
-    const w = data.wallet.filter(({transactType}) => transactType == 'Total')[0]
-    const qty = units(w.walletBalance)*leverage*price/2
+    const qty = units(walletTotal())*leverage*price/2
     data.status = `Buying ${qty} at ${price}`
     const done = () => data.status = 'Buy order placed'
     // limit('Buy', qty, price, 'User Buy Order').then(() => fetchPositionStatus().then(done).then(display))

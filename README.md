@@ -10,7 +10,6 @@ x Terminal setup
  x Full screen
  x Errors still go to console
  x Respond immediately to keypresses
-* Store only the data we actually need for wallet: total, available, pnl
 * Open a position - implement buy()/sell() functions
  x Calculate correct qty, price etc
  * Track order and check for fill
