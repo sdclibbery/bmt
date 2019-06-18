@@ -37,6 +37,16 @@ const terminate = (code) => {
   term.fullscreen(false)
 	term.processExit(code)
 }
+const error = (...args) => {
+  term.fullscreen(false)
+  console.error(...args)
+  term.fullscreen(true)
+}
+const log = (...args) => {
+  term.fullscreen(false)
+  console.log(...args)
+  term.fullscreen(true)
+}
 const display = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
@@ -95,22 +105,25 @@ const limit = (side, qty, price, id) => {
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: `${id} ${Date.now()}`, symbol: symbol,
       side: side, orderQty: qty, price: price
-    }).then(display).catch(console.error)
+    }).then(display).catch(error)
 }
 
 const setLeverage = () => {
-  return bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).catch(console.error)
+  return bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).catch(error)
 }
 
 const buy = () => {
   data.status = `Buying`
   display()
-  setLeverage().then(() => {
+  Promise.all([fetchSpread, setLeverage]).then(() => {
     const price = data.spread.lo.price
     const qty = units(walletTotal())*leverage*price/2
     data.status = `Buying ${qty} at ${price}`
-    const done = () => data.status = 'Buy order placed'
-    // limit('Buy', qty, price, 'User Buy Order').then(() => fetchPositionStatus().then(done).then(display))
+    log(data.status)
+    display()
+    limit('Buy', qty, price, 'TrackMe Buy Order').then(() => {
+      fetchOrders().then(() => data.status = 'Buy order placed').then(display)
+    })
   })
 }
 
@@ -118,28 +131,32 @@ const buy = () => {
 
 const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
-    .then(w => { data.wallet = w }).then(display).catch(console.error)
+    .then(w => { data.wallet = w }).then(display).catch(error)
 }
 
-const fetchOrderBook = () => {
-  return Promise.all([
-    bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
-      .then(([t]) => { data.lastTrade = t }),
-    bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
-      .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }),
-  ]).then(display).catch(console.error)
+const fetchRecentPrice = () => {
+  return bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
+    .then(([t]) => { data.lastTrade = t }).then(display).catch(error)
 }
 
-const fetchPositionStatus = () => {
-  return Promise.all([
-    bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
-      .then(orders => { data.openOrders = orders }),
-    bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
-      .then(positions => { data.openPositions = positions }),
-  ]).then(display).catch(console.error)
+const fetchSpread = () => {
+  return bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
+      .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} }).then(display).catch(error)
+}
+
+const fetchPositions = () => {
+  return bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
+    .then(positions => { data.openPositions = positions }).then(display).catch(error)
+}
+
+const fetchOrders = () => {
+  return bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
+      .then(orders => { data.openOrders = orders }).then(display).catch(error)
 }
 
 display()
 fetchWallet(); setInterval(() => fetchWallet(), 60000)
-fetchOrderBook(); setInterval(() => fetchOrderBook(), 3000)
-fetchPositionStatus(); setInterval(() => fetchPositionStatus(), 10000)
+fetchRecentPrice(); setInterval(() => fetchRecentPrice(), 4000)
+fetchSpread(); setInterval(() => fetchSpread(), 2000)
+fetchPositions(); setInterval(() => fetchPositions(), 10000)
+fetchOrders(); setInterval(() => fetchOrders(), 10000)
