@@ -117,7 +117,7 @@ const buy = () => {
   display()
   Promise.all([fetchSpread, setLeverage]).then(() => {
     const price = data.spread.lo.price
-    const qty = units(walletTotal())*leverage*price/2
+    const qty = Math.floor(units(walletTotal())*leverage*price/2)
     data.status = `Buying ${qty} at ${price}`
     log(data.status)
     display()
@@ -125,6 +125,9 @@ const buy = () => {
       fetchOrders().then(() => data.status = 'Buy order placed').then(display)
     })
   })
+}
+
+const close = () => {
 }
 
 // Data fetch
