@@ -17,7 +17,8 @@ x Open a position - implement buy()/sell() functions
   x Need to round qty
 x sell() function
 x Close an open position - implement close() function
-* TEST buy AND sell
+x TEST buy AND sell and close each
+* set leverage not working??
 * Track open orders against spread
 * Set stop loss when opening position, consider trailing stop... also check exec instructions
 * Switch to websocket data feed

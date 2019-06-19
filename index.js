@@ -71,15 +71,15 @@ const display = () => {
     term.brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
   }
 
-  data.openOrders.forEach(({side,price,size,orderQty,leavesQty,symbol}) => {
-    begin()('open order ').side(side,side)(' ').side(side,leavesQty)('/').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
+  data.openOrders.forEach(({side,price,size,leavesQty,symbol}) => {
+    begin()('open order ').side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)('\n')
   })
 
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
     begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
     term('  entry ').orange(avgEntryPrice)(' mark ').purple(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
-    term('  pnl ').sign(units(unrealisedPnl))('(').sign(unrealisedRoePcnt*100)('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
+    term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
 
   begin()('\n')(data.status)('\n')
