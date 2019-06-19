@@ -120,7 +120,7 @@ const limit = (qty, price, baseId) => {
 const buy = () => {
   data.status = `Buying ${symbol}`
   display()
-  Promise.all([fetchSpread, setLeverage]).then(() => {
+  Promise.all([fetchSpread(), setLeverage()]).then(() => {
     const price = data.spread.lo.price
     const qty = Math.floor(units(walletTotal())*leverage*price/2)
     limit(qty, price, 'TrackMe').then(() => {
@@ -132,7 +132,7 @@ const buy = () => {
 const sell = () => {
   data.status = `Selling ${symbol}`
   display()
-  Promise.all([fetchSpread, setLeverage]).then(() => {
+  Promise.all([fetchSpread(), setLeverage()]).then(() => {
     const price = data.spread.lo.price
     const qty = -Math.floor(units(walletTotal())*leverage*price/2)
     limit(qty, price, 'TrackMe').then(() => {
@@ -177,7 +177,8 @@ const fetchPositions = () => {
 
 const fetchOrders = () => {
   return bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
-      .then(orders => { data.openOrders = orders }).then(display).catch(error)
+      .then(orders => { data.openOrders = orders })
+      .then(display).catch(error)
 }
 
 display()
