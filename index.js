@@ -71,8 +71,8 @@ const display = () => {
     term.brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
   }
 
-  data.openOrders.forEach(({side,price,size,orderQty,displayQty,symbol}) => {
-    begin()('open order ').side(side,side)(' ').side(side,displayQty)('/').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
+  data.openOrders.forEach(({side,price,size,orderQty,leavesQty,symbol}) => {
+    begin()('open order ').side(side,side)(' ').side(side,leavesQty)('/').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
   })
 
   const ps = data.openPositions || []
