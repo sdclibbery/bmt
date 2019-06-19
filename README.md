@@ -15,7 +15,8 @@ x Open a position - implement buy()/sell() functions
  x Calculate correct qty, price etc
  x Place order
   x Need to round qty
-* Close an open position - implement close() function
+x sell() function
+x Close an open position - implement close() function
+* TEST buy AND sell
 * Track open orders against spread
 * Set stop loss when opening position, consider trailing stop... also check exec instructions
-* sell() function

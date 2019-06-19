@@ -26,7 +26,8 @@ const data = {
 const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
 const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
-const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openOrders.length==0)
+const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && data.openOrders.length==0)
+const status = (s) => { data.status = s; display(); }
 
 // Display
 
@@ -101,33 +102,55 @@ term.on('key', (name, matches, data) => {
 
 // Actions
 
-const limit = (side, qty, price, id) => {
-  return bitmex.request('POST', '/order', {
-      ordType: 'Limit', clOrdID: `${id} ${Date.now()}`, symbol: symbol,
-      side: side, orderQty: qty, price: price
-    }).then(display).catch(error)
-}
-
 const setLeverage = () => {
   return bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).catch(error)
 }
 
+const limit = (qty, price, baseId) => {
+  const side = qty>0 ? 'Buy' : 'Sell'
+  const id = `${baseId} ${side} ${Date.now()}`
+  status(`Limit ${side}ing ${qty} at ${price}\n  '${id}''`)
+  log(data.status)
+  return bitmex.request('POST', '/order', {
+      ordType: 'Limit', clOrdID: id, symbol: symbol,
+      side: side, orderQty: qty, price: price
+    }).then(display).catch(error)
+}
+
 const buy = () => {
-  data.status = `Buying`
+  data.status = `Buying ${symbol}`
   display()
   Promise.all([fetchSpread, setLeverage]).then(() => {
     const price = data.spread.lo.price
     const qty = Math.floor(units(walletTotal())*leverage*price/2)
-    data.status = `Buying ${qty} at ${price}`
-    log(data.status)
-    display()
-    limit('Buy', qty, price, 'TrackMe Buy Order').then(() => {
-      fetchOrders().then(() => data.status = 'Buy order placed').then(display)
+    limit(qty, price, 'TrackMe').then(() => {
+      fetchOrders().then(() => status('Buy order placed'))
+    })
+  })
+}
+
+const sell = () => {
+  data.status = `Selling ${symbol}`
+  display()
+  Promise.all([fetchSpread, setLeverage]).then(() => {
+    const price = data.spread.lo.price
+    const qty = -Math.floor(units(walletTotal())*leverage*price/2)
+    limit(qty, price, 'TrackMe').then(() => {
+      fetchOrders().then(() => status('Sell order placed'))
     })
   })
 }
 
 const close = () => {
+  data.status = `Closing ${symbol} position`
+  display()
+  fetchSpread.then(() => {
+    const qty = data.openPositions[0].currentQty
+    const price = data.spread.hi.price
+    limit(qty, price, 'TrackMe Close').then(() => {
+      fetchOrders().then(() => status('Close order placed'))
+    })
+  })
 }
 
 // Data fetch
