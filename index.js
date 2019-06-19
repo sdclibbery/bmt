@@ -71,8 +71,8 @@ const display = () => {
     term.brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
   }
 
-  data.openOrders.forEach(({side,price,size,orderQty,symbol}) => {
-    begin()('open order ').side(side,side)(' ').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
+  data.openOrders.forEach(({side,price,size,orderQty,displayQty,symbol}) => {
+    begin()('open order ').side(side,side)(' ').side(side,displayQty)('/').side(side,orderQty)(' ')(symbol)(' @ ')(price)('\n')
   })
 
   const ps = data.openPositions || []
@@ -144,8 +144,8 @@ const sell = () => {
 const close = () => {
   data.status = `Closing ${symbol} position`
   display()
-  fetchSpread.then(() => {
-    const qty = data.openPositions[0].currentQty
+  fetchSpread().then(() => {
+    const qty = -data.openPositions[0].currentQty
     const price = data.spread.hi.price
     limit(qty, price, 'TrackMe Close').then(() => {
       fetchOrders().then(() => status('Close order placed'))
