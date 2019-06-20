@@ -25,7 +25,7 @@ const data = {
   openPositions: undefined,
   status: 'Init',
 }
-const status = (s) => { data.status = s; display(); }
+const status = (s) => { log(s); data.status = s; display(); }
 const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
 const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
@@ -116,8 +116,7 @@ const setLeverage = () => {
 const limit = (qty, price, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
   const id = `${baseId} ${side} ${Date.now()}`
-  status(`Limit ${side}ing ${qty} at ${price}\n  '${id}''`)
-  log(data.status)
+  status(`Limit ${side} ${qty} at ${price}\n  '${id}''`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
       side: side, orderQty: qty, price: price
@@ -125,14 +124,18 @@ const limit = (qty, price, baseId) => {
 }
 
 const setOrderPrice = (clOrdID, newPrice) => {
-  log(`Updating '${clOrdID}' to ${newPrice}`)
+  status(`Updating\n  '${clOrdID}' to ${newPrice}`)
+}
+
+const cancelOrder = (clOrdID) => {
+  status(`Cancelling\n  '${clOrdID}'`)
+  return bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).catch(error('cancel'))
 }
 
 // Actions
 
 const buy = () => {
-  data.status = `Buying ${symbol}`
-  display()
+  status(`Buying ${symbol}`)
   Promise.all([fetchSpread(), setLeverage()]).then(() => {
     const price = data.spread.lo.price
     const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
@@ -143,8 +146,7 @@ const buy = () => {
 }
 
 const sell = () => {
-  data.status = `Selling ${symbol}`
-  display()
+  status(`Selling ${symbol}`)
   Promise.all([fetchSpread(), setLeverage()]).then(() => {
     const price = data.spread.lo.price
     const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
@@ -155,8 +157,7 @@ const sell = () => {
 }
 
 const close = () => {
-  data.status = `Closing ${symbol} position`
-  display()
+  status(`Closing ${symbol} position`)
   fetchSpread().then(() => {
     const qty = -data.openPositions[0].currentQty
     const price = data.spread.hi.price
@@ -168,9 +169,8 @@ const close = () => {
 
 const cancel = () => {
   const clOrdID = data.openOrders[0].clOrdID
-  bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).then(fetchOrders()).catch(error('cancel'))
-  data.status = `Cancelled '${clOrdID}'`
-  display()
+  cancelOrder(clOrdID).then(fetchOrders())
+  status(`Cancelled '${clOrdID}'`)
 }
 
 const updateOrders = () => {
