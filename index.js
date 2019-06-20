@@ -25,11 +25,12 @@ const data = {
   openPositions: undefined,
   status: 'Init',
 }
+const status = (s) => { data.status = s; display(); }
 const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
 const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
 const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && data.openOrders.length==0)
-const status = (s) => { data.status = s; display(); }
+const canCancel = () => (data.openOrders && data.openOrders.length==1 && data.openOrders[0].symbol == symbol)
 
 // Display
 
@@ -93,6 +94,9 @@ const display = () => {
   if (canClose()) {
     term('  ').brightBlue("'C'lose")('\n')
   }
+  if (canCancel()) {
+    term('  ').brightBlue("Ca'n'cel")
+  }
 }
 term.on('key', (name, matches, data) => {
   const is = (c) => name == c
@@ -100,6 +104,7 @@ term.on('key', (name, matches, data) => {
   if (canBuySell() && is('b')) { buy() }
   if (canBuySell() && is('s')) { sell() }
   if (canClose() && is('c')) { close() }
+  if (canCancel() && is('n')) { cancel() }
 })
 
 // api calls
@@ -116,7 +121,7 @@ const limit = (qty, price, baseId) => {
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
       side: side, orderQty: qty, price: price
-    }).then(display).catch(error('limit'))
+    }).then(fetchOrders()).then(display).catch(error('limit'))
 }
 
 const setOrderPrice = (clOrdID, newPrice) => {
@@ -159,6 +164,13 @@ const close = () => {
       fetchOrders().then(() => status('Close order placed'))
     })
   })
+}
+
+const cancel = () => {
+  const clOrdID = data.openOrders[0].clOrdID
+  bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).then(fetchOrders()).catch(error('cancel'))
+  data.status = `Cancelled '${clOrdID}'`
+  display()
 }
 
 const updateOrders = () => {
