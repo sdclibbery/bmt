@@ -54,8 +54,6 @@ const log = (...args) => {
 const display = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
-  term.orange = term.color('orange')
-  term.purple = term.color('purple')
   const begin = () => term.styleReset()
 
   term.clear().moveTo(1,1)
@@ -81,7 +79,7 @@ const display = () => {
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
     begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
-    term('  entry ').orange(avgEntryPrice)(' mark ').purple(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
+    term('  entry ').yellow(avgEntryPrice)(' mark ').yellow(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
     term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
 
