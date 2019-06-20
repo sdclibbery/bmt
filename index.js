@@ -125,11 +125,12 @@ const limit = (qty, price, baseId) => {
 
 const setOrderPrice = (clOrdID, newPrice) => {
   status(`Updating\n  '${clOrdID}' to ${newPrice}`)
+  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(error('setOrderPrice'))
 }
 
 const cancelOrder = (clOrdID) => {
   status(`Cancelling\n  '${clOrdID}'`)
-  return bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).catch(error('cancel'))
+  return bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).catch(error('cancelOrder'))
 }
 
 // Actions
@@ -139,9 +140,7 @@ const buy = () => {
   Promise.all([fetchSpread(), setLeverage()]).then(() => {
     const price = data.spread.lo.price
     const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-    limit(qty, price, 'UpdateMe').then(() => {
-      fetchOrders().then(() => status('Buy order placed'))
-    })
+    limit(qty, price, 'UpdateMe').then(fetchOrders())
   })
 }
 
@@ -150,9 +149,7 @@ const sell = () => {
   Promise.all([fetchSpread(), setLeverage()]).then(() => {
     const price = data.spread.lo.price
     const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-    limit(qty, price, 'UpdateMe').then(() => {
-      fetchOrders().then(() => status('Sell order placed'))
-    })
+    limit(qty, price, 'UpdateMe').then(fetchOrders())
   })
 }
 
@@ -161,9 +158,7 @@ const close = () => {
   fetchSpread().then(() => {
     const qty = -data.openPositions[0].currentQty
     const price = data.spread.hi.price
-    limit(qty, price, 'UpdateMe Close').then(() => {
-      fetchOrders().then(() => status('Close order placed'))
-    })
+    limit(qty, price, 'UpdateMe Close').then(fetchOrders())
   })
 }
 
