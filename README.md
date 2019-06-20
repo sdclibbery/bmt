@@ -19,6 +19,8 @@ x sell() function
 x Close an open position - implement close() function
 x TEST buy AND sell and close each
 x set leverage not working??
+* Can cancel open order
 * Track open orders against spread
+* Can half close open position
 * Switch to websocket data feed
 * Set stop loss when opening position, consider trailing stop... also check exec instructions
