@@ -1,4 +1,5 @@
-BitmexRequest = require('bitmex-request').BitmexRequest
+const BitmexRequest = require('bitmex-request').BitmexRequest
+const BitMEXClient = require('bitmex-realtime-api');
 const credentials = require('./bitmex_credentials')
 const term = require( 'terminal-kit' ).terminal
 
@@ -8,6 +9,11 @@ const openWalletFraction = 0.5
 
 const units = (x) => x/100000000
 
+const bitmexWs = new BitMEXClient({
+    apiKey: credentials.key,
+    apiSecret: credentials.secret,
+    testnet: credentials.testnet,
+})
 const bitmex = new BitmexRequest({
     apiKey: credentials.key,
     apiSecret: credentials.secret,
@@ -194,12 +200,13 @@ const fetchMarkPrice = () => {
     .then(([i]) => { data.markPrice = i.markPrice }).then(display).catch(error('fetchMarkPrice'))
 }
 
-const fetchSpread = () => {
-  return bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
-      .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} })
-      .then(updateOrders)
-      .then(display).catch(error('fetchSpread'))
-}
+bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
+  if (!res.length) return
+  const quote = res[res.length - 1]
+  data.spread = {lo:{price:quote.bidPrice,size:quote.bidSize}, hi:{price:quote.askPrice,size:quote.askSize}}
+  updateOrders()
+  display()
+})
 
 const fetchPositions = () => {
   return bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
@@ -216,6 +223,5 @@ display()
 fetchWallet(); setInterval(() => fetchWallet(), 60000)
 fetchRecentPrice(); setInterval(() => fetchRecentPrice(), 10000)
 fetchMarkPrice(); setInterval(() => fetchMarkPrice(), 4000)
-fetchSpread(); setInterval(() => fetchSpread(), 2000)
 fetchPositions(); setInterval(() => fetchPositions(), 10000)
 fetchOrders(); setInterval(() => fetchOrders(), 5000)
