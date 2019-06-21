@@ -216,10 +216,11 @@ bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
   display()
 })
 
-const fetchPositions = () => {
-  return bitmex.request('GET', '/position', { filter: '{"isOpen": true}', reverse: true })
-    .then(positions => { data.openPositions = positions }).then(display).catch(error('fetchPositions'))
-}
+bitmexWs.addStream(symbol, 'position', function (positions, symbol, tableName) {
+  if (!positions.length) return
+  data.openPositions = positions.filter(({isOpen}) => isOpen)
+  display()
+})
 
 const fetchOrders = () => {
   return bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
@@ -230,5 +231,4 @@ const fetchOrders = () => {
 display()
 fetchWallet(); setInterval(fetchWallet, 60000)
 fetchRecentPrice(); setInterval(fetchRecentPrice, 10000)
-fetchPositions(); setInterval(fetchPositions, 10000)
-fetchOrders(); setInterval(fetchOrders, 5000)
+fetchOrders(); setInterval(fetchOrders, 10000)
