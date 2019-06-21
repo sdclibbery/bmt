@@ -193,10 +193,12 @@ const fetchRecentPrice = () => {
     .then(([t]) => { data.lastTrade = t }).then(display).catch(error('fetchRecentPrice'))
 }
 
-const fetchMarkPrice = () => {
-  return bitmex.request('GET', '/instrument', { symbol: symbol, columns:'markPrice' })
-    .then(([i]) => { data.markPrice = i.markPrice }).then(display).catch(error('fetchMarkPrice'))
-}
+bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
+  if (!res.length) return
+  const instrument = res[res.length - 1]
+  data.markPrice = instrument.markPrice
+  display()
+})
 
 bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
   if (!res.length) return
@@ -220,6 +222,5 @@ const fetchOrders = () => {
 display()
 fetchWallet(); setInterval(() => fetchWallet(), 60000)
 fetchRecentPrice(); setInterval(() => fetchRecentPrice(), 10000)
-fetchMarkPrice(); setInterval(() => fetchMarkPrice(), 4000)
 fetchPositions(); setInterval(() => fetchPositions(), 10000)
 fetchOrders(); setInterval(() => fetchOrders(), 5000)
