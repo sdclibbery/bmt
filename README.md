@@ -21,7 +21,7 @@ x TEST buy AND sell and close each
 x set leverage not working??
 x Can cancel open order
 x Track open orders against spread
-* Show status message in grey
+x Show status message in grey
 * Switch to websocket data feed
 * Show mark price alongside recent trade, not as part of position
 * Can half close open position

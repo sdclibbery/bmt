@@ -137,7 +137,15 @@ const limit = (qty, price, baseId) => {
 
 const setOrderPrice = (clOrdID, newPrice) => {
   status(`Updating\n  '${clOrdID}' to ${newPrice}`)
-  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(error('setOrderPrice'))
+  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(e => {
+      if (e.error.message == 'Invalid ordStatus') {
+        log(`Invalid ordStatus: removing order\n  ${clOrdID}`)
+        data.openOrders = data.openOrders.filter(({clOrdID}) => clOrdID != execution.clOrdID)
+        display()
+      } else {
+        error('setOrderPrice')(e)
+      }
+    })
 }
 
 const cancelOrder = (clOrdID) => {
