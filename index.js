@@ -97,7 +97,7 @@ const display = () => {
     term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
 
-  begin()('\n')(data.status)('\n')
+  begin()('\n').grey()(data.status)('\n')
 
   begin()("'Q'uit")
   if (canBuySell()) {
