@@ -110,6 +110,7 @@ const display = () => {
     term('  ').brightBlue("Ca'n'cel")
   }
 }
+display()
 term.on('key', (name, matches, data) => {
   const is = (c) => name == c
 	if (is('CTRL_C') || is('q')) { terminate() }
@@ -205,10 +206,11 @@ const fetchWallet = () => {
 }
 bitmexWs.addStream(symbol, 'wallet', function (wallet, symbol, tableName) { fetchWallet() })
 
-const fetchLastPrice = () => {
-  return bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
-    .then(([t]) => { data.lastTrade = t }).then(display).catch(error('fetchLastPrice'))
-}
+bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
+  if (!res.length) return
+  const trade = res[res.length - 1]
+  data.lastTrade = trade
+})
 
 bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
   if (!res.length) return
@@ -235,7 +237,4 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
-
-display()
-fetchLastPrice(); setInterval(fetchLastPrice, 10000)
-fetchOrders(); setInterval(fetchOrders, 10000)
+fetchOrders(); setInterval(fetchOrders, 5000)
