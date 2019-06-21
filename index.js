@@ -61,7 +61,7 @@ const display = () => {
   begin()(`Testnet: ${credentials.testnet}`)('\n')
 
   const t = data.lastTrade
-  begin()('last price ').side(t.side, t.price)(' ')(symbol)('\n')
+  begin()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
 
   begin()('wallet')(' ').brightBlue(units(walletTotal()))(' ')(walletCurrency())
   term('\n')
@@ -79,7 +79,7 @@ const display = () => {
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
     begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
-    term('  entry ').yellow(avgEntryPrice)(' mark ').yellow(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
+    term('  entry ').yellow(avgEntryPrice)(' mark ').magenta(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
     term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
   })
 
@@ -114,7 +114,7 @@ const setLeverage = () => {
 const limit = (qty, price, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
   const id = `${baseId} ${side} ${Date.now()}`
-  status(`Limit ${side} ${qty} at ${price}\n  '${id}''`)
+  status(`Limit ${side} ${qty} at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
       side: side, orderQty: qty, price: price
@@ -189,6 +189,11 @@ const fetchRecentPrice = () => {
     .then(([t]) => { data.lastTrade = t }).then(display).catch(error('fetchRecentPrice'))
 }
 
+const fetchMarkPrice = () => {
+  return bitmex.request('GET', '/instrument', { symbol: symbol, columns:'markPrice' })
+    .then(([i]) => { data.markPrice = i.markPrice }).then(display).catch(error('fetchMarkPrice'))
+}
+
 const fetchSpread = () => {
   return bitmex.request('GET', '/orderBook/L2', { symbol: symbol, depth: 1 })
       .then(([o1,o2]) => { data.spread = {lo:o2,hi:o1} })
@@ -210,6 +215,7 @@ const fetchOrders = () => {
 display()
 fetchWallet(); setInterval(() => fetchWallet(), 60000)
 fetchRecentPrice(); setInterval(() => fetchRecentPrice(), 10000)
+fetchMarkPrice(); setInterval(() => fetchMarkPrice(), 4000)
 fetchSpread(); setInterval(() => fetchSpread(), 2000)
 fetchPositions(); setInterval(() => fetchPositions(), 10000)
 fetchOrders(); setInterval(() => fetchOrders(), 5000)

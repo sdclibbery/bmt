@@ -21,8 +21,8 @@ x TEST buy AND sell and close each
 x set leverage not working??
 x Can cancel open order
 x Track open orders against spread
+* Switch to websocket data feed
 * Show mark price alongside recent trade, not as part of position
 * Can half close open position
-* Switch to websocket data feed
 * Set stop loss when opening position, consider trailing stop... also check exec instructions
 * Candle graphs
