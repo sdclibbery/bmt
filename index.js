@@ -138,9 +138,9 @@ const limit = (qty, price, baseId) => {
 const setOrderPrice = (clOrdID, newPrice) => {
   status(`Updating\n  '${clOrdID}' to ${newPrice}`)
   return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(e => {
-      if (e.error.message == 'Invalid ordStatus') {
+      if (e.toString().includes('Invalid ordStatus')) {
         log(`Invalid ordStatus: removing order\n  ${clOrdID}`)
-        data.openOrders = data.openOrders.filter(({clOrdID}) => clOrdID != execution.clOrdID)
+        data.openOrders = data.openOrders.filter(o => o.clOrdID != clOrdID)
         display()
       } else {
         error('setOrderPrice')(e)
@@ -203,10 +203,11 @@ const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
     .then(w => { data.wallet = w }).then(display).catch(error('fetchWallet'))
 }
+bitmexWs.addStream(symbol, 'wallet', function (wallet, symbol, tableName) { fetchWallet() })
 
-const fetchRecentPrice = () => {
+const fetchLastPrice = () => {
   return bitmex.request('GET', '/trade', { symbol: symbol, count: 1, reverse:'true' })
-    .then(([t]) => { data.lastTrade = t }).then(display).catch(error('fetchRecentPrice'))
+    .then(([t]) => { data.lastTrade = t }).then(display).catch(error('fetchLastPrice'))
 }
 
 bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
@@ -225,7 +226,6 @@ bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
 })
 
 bitmexWs.addStream(symbol, 'position', function (positions, symbol, tableName) {
-  if (!positions.length) return
   data.openPositions = positions.filter(({isOpen}) => isOpen)
   display()
 })
@@ -237,6 +237,5 @@ const fetchOrders = () => {
 }
 
 display()
-fetchWallet(); setInterval(fetchWallet, 60000)
-fetchRecentPrice(); setInterval(fetchRecentPrice, 10000)
+fetchLastPrice(); setInterval(fetchLastPrice, 10000)
 fetchOrders(); setInterval(fetchOrders, 10000)
