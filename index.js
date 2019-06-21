@@ -190,10 +190,11 @@ const cancel = () => {
 const updateOrders = () => {
   data.openOrders
     .filter(({clOrdID}) => clOrdID.startsWith('UpdateMe'))
-    .forEach(({clOrdID, price, orderQty}) => {
-      const newPrice = (orderQty > 0) ? data.spread.lo.price : data.spread.hi.price
-      if (price != newPrice) {
-        setOrderPrice(clOrdID, newPrice)
+    .forEach(o => {
+      const newPrice = (o.orderQty > 0) ? data.spread.lo.price : data.spread.hi.price
+      if (o.price != newPrice) {
+        setOrderPrice(o.clOrdID, newPrice)
+        o.price = newPrice
       }
     })
 }
@@ -237,4 +238,9 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
-fetchOrders(); setInterval(fetchOrders, 5000)
+fetchOrders(); setInterval(fetchOrders, 10000)
+bitmexWs.addStream(symbol, 'order', function (orders, symbol, tableName) {
+  orders.filter(({ordStatus}) => ordStatus == 'Filled').forEach(o => {
+    data.openOrders = data.openOrders.filter(({clOrdID}) => clOrdID != o.clOrdID)
+  })
+})

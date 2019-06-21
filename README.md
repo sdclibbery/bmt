@@ -22,8 +22,8 @@ x set leverage not working??
 x Can cancel open order
 x Track open orders against spread
 x Show status message in grey
-* Switch to websocket data feed
-* Show mark price alongside recent trade, not as part of position
-* Can half close open position
+x Switch to websocket data feed
+x Show mark price alongside recent trade, not as part of position
 * Set stop loss when opening position, consider trailing stop... also check exec instructions
 * Candle graphs
+* Can half close open position
