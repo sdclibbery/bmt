@@ -3,23 +3,48 @@ const BitMEXClient = require('bitmex-realtime-api');
 const credentials = require('./bitmex_credentials')
 const term = require( 'terminal-kit' ).terminal
 
+// constants
+
 const symbol = 'XBTUSD'
 const leverage = 25
 const openWalletFraction = 0.5
 
-const units = (x) => x/100000000
+// terminal setup and logging
+
+term.grabInput()
+term.fullscreen(true)
+const terminate = (code) => {
+  term.grabInput(false)
+  term.fullscreen(false)
+	term.processExit(code)
+}
+const error = (context) => (...args) => {
+  term.fullscreen(false)
+  console.error(context, ...args)
+  term.fullscreen(true)
+}
+const log = (...args) => {
+  term.fullscreen(false)
+  console.log(...args)
+  term.fullscreen(true)
+}
+
+// Bitmex clients
 
 const bitmexWs = new BitMEXClient({
-    apiKey: credentials.key,
-    apiSecret: credentials.secret,
+    apiKeyID: credentials.key,
+    apiKeySecret: credentials.secret,
     testnet: credentials.testnet,
 })
+bitmexWs.on('error', error('BitMEX websocket'))
 const bitmex = new BitmexRequest({
     apiKey: credentials.key,
     apiSecret: credentials.secret,
     testnet: credentials.testnet,
     retryTimes: 2,
 })
+
+const units = (x) => x/100000000
 
 // Data
 
@@ -40,23 +65,6 @@ const canCancel = () => (data.openOrders && data.openOrders.length==1 && data.op
 
 // Display
 
-term.grabInput()
-term.fullscreen(true)
-const terminate = (code) => {
-  term.grabInput(false)
-  term.fullscreen(false)
-	term.processExit(code)
-}
-const error = (context) => (...args) => {
-  term.fullscreen(false)
-  console.error(context, ...args)
-  term.fullscreen(true)
-}
-const log = (...args) => {
-  term.fullscreen(false)
-  console.log(...args)
-  term.fullscreen(true)
-}
 const display = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
@@ -124,7 +132,7 @@ const limit = (qty, price, baseId) => {
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
       side: side, orderQty: qty, price: price
-    }).then(fetchOrders()).then(display).catch(error('limit'))
+    }).catch(error('limit'))
 }
 
 const setOrderPrice = (clOrdID, newPrice) => {
@@ -144,7 +152,7 @@ const buy = () => {
   setLeverage().then(() => {
     const price = data.spread.lo.price
     const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-    limit(qty, price, 'UpdateMe').then(fetchOrders())
+    limit(qty, price, 'UpdateMe').then(fetchOrders)
   })
 }
 
@@ -153,7 +161,7 @@ const sell = () => {
   setLeverage().then(() => {
     const price = data.spread.lo.price
     const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-    limit(qty, price, 'UpdateMe').then(fetchOrders())
+    limit(qty, price, 'UpdateMe').then(fetchOrders)
   })
 }
 
@@ -161,12 +169,12 @@ const close = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
   const price = data.spread.hi.price
-  limit(qty, price, 'UpdateMe Close').then(fetchOrders())
+  limit(qty, price, 'UpdateMe Close').then(fetchOrders)
 }
 
 const cancel = () => {
   const clOrdID = data.openOrders[0].clOrdID
-  cancelOrder(clOrdID).then(fetchOrders())
+  cancelOrder(clOrdID).then(fetchOrders)
   status(`Cancelled '${clOrdID}'`)
 }
 
@@ -215,12 +223,12 @@ const fetchPositions = () => {
 
 const fetchOrders = () => {
   return bitmex.request('GET', '/order', { filter: '{"open": true}', reverse: true })
-      .then(orders => { data.openOrders = orders })
-      .then(display).catch(error('fetchOrders'))
+    .then(orders => { data.openOrders = orders })
+    .then(display).catch(error('fetchOrders'))
 }
 
 display()
-fetchWallet(); setInterval(() => fetchWallet(), 60000)
-fetchRecentPrice(); setInterval(() => fetchRecentPrice(), 10000)
-fetchPositions(); setInterval(() => fetchPositions(), 10000)
-fetchOrders(); setInterval(() => fetchOrders(), 5000)
+fetchWallet(); setInterval(fetchWallet, 60000)
+fetchRecentPrice(); setInterval(fetchRecentPrice, 10000)
+fetchPositions(); setInterval(fetchPositions, 10000)
+fetchOrders(); setInterval(fetchOrders, 5000)
