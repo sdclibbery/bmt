@@ -141,7 +141,7 @@ const cancelOrder = (clOrdID) => {
 
 const buy = () => {
   status(`Buying ${symbol}`)
-  Promise.all([fetchSpread(), setLeverage()]).then(() => {
+  setLeverage().then(() => {
     const price = data.spread.lo.price
     const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
     limit(qty, price, 'UpdateMe').then(fetchOrders())
@@ -150,7 +150,7 @@ const buy = () => {
 
 const sell = () => {
   status(`Selling ${symbol}`)
-  Promise.all([fetchSpread(), setLeverage()]).then(() => {
+  setLeverage().then(() => {
     const price = data.spread.lo.price
     const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
     limit(qty, price, 'UpdateMe').then(fetchOrders())
@@ -159,11 +159,9 @@ const sell = () => {
 
 const close = () => {
   status(`Closing ${symbol} position`)
-  fetchSpread().then(() => {
-    const qty = -data.openPositions[0].currentQty
-    const price = data.spread.hi.price
-    limit(qty, price, 'UpdateMe Close').then(fetchOrders())
-  })
+  const qty = -data.openPositions[0].currentQty
+  const price = data.spread.hi.price
+  limit(qty, price, 'UpdateMe Close').then(fetchOrders())
 }
 
 const cancel = () => {
