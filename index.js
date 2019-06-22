@@ -75,11 +75,11 @@ const display = () => {
 
   begin()(`Testnet: ${credentials.testnet}`)('\n')
 
-  const t = data.lastTrade
-  begin()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
-
   begin()('wallet')(' ').brightBlue(units(walletTotal()))(' ')(walletCurrency())
   term('\n')
+
+  const t = data.lastTrade
+  begin()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
 
   const s = data.spread
   begin()('spread ')
