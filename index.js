@@ -43,6 +43,7 @@ const bitmex = new BitmexRequest({
     testnet: credentials.testnet,
     retryTimes: 2,
 })
+bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).then(log('Set leverage')).catch(error('setLeverage'))
 
 const units = (x) => x/100000000
 
@@ -122,10 +123,6 @@ term.on('key', (name, matches, data) => {
 
 // api calls
 
-const setLeverage = () => {
-  return bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).catch(error('setLeverage'))
-}
-
 const limit = (qty, price, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
   const id = `${baseId} ${side} ${Date.now()}`
@@ -158,20 +155,16 @@ const cancelOrder = (clOrdID) => {
 
 const buy = () => {
   status(`Buying ${symbol}`)
-  setLeverage().then(() => {
-    const price = data.spread.lo.price
-    const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-    limit(qty, price, 'UpdateMe').then(fetchOrders)
-  })
+  const price = data.spread.lo.price
+  const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
+  limit(qty, price, 'UpdateMe').then(fetchOrders)
 }
 
 const sell = () => {
   status(`Selling ${symbol}`)
-  setLeverage().then(() => {
-    const price = data.spread.lo.price
-    const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-    limit(qty, price, 'UpdateMe').then(fetchOrders)
-  })
+  const price = data.spread.lo.price
+  const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
+  limit(qty, price, 'UpdateMe').then(fetchOrders)
 }
 
 const close = () => {
