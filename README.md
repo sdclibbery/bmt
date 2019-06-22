@@ -25,7 +25,8 @@ x Show status message in grey
 x Switch to websocket data feed
 x Show mark price alongside recent trade, not as part of position
 x Set leverage at startup, not when placing order (to improve order placement latency)
-* Can get spread, last and mark all from insturment ws?
+x Can get spread and mark from insturment ws?
+* Indicate buy/sell fraction in recent trades, maybe also indicate volume velocity?
 * Set stop loss when opening position, consider trailing stop... also check exec instructions
 * Candle graphs
 * Can half close open position

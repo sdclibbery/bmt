@@ -211,6 +211,7 @@ bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
   const instrument = res[res.length - 1]
   data.markPrice = instrument.markPrice
   data.spread = {lo: instrument.bidPrice, hi: instrument.askPrice}
+  updateOrders()
   display()
 })
 
