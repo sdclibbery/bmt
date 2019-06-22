@@ -84,7 +84,7 @@ const display = () => {
   const s = data.spread
   begin()('spread ')
   if (s) {
-    term.brightGreen(s.lo.price)(' - ').brightRed(s.hi.price)(' ')(symbol)('\n')
+    term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
   data.openOrders.forEach(({side,price,size,leavesQty,symbol}) => {
@@ -155,14 +155,14 @@ const cancelOrder = (clOrdID) => {
 
 const buy = () => {
   status(`Buying ${symbol}`)
-  const price = data.spread.lo.price
+  const price = data.spread.lo
   const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe').then(fetchOrders)
 }
 
 const sell = () => {
   status(`Selling ${symbol}`)
-  const price = data.spread.lo.price
+  const price = data.spread.hi
   const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe').then(fetchOrders)
 }
@@ -170,7 +170,7 @@ const sell = () => {
 const close = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
-  const price = data.spread.hi.price
+  const price = (qty > 0) ? data.spread.lo : data.spread.hi
   limit(qty, price, 'UpdateMe Close').then(fetchOrders)
 }
 
@@ -184,7 +184,7 @@ const updateOrders = () => {
   data.openOrders
     .filter(({clOrdID}) => clOrdID.startsWith('UpdateMe'))
     .forEach(o => {
-      const newPrice = (o.orderQty > 0) ? data.spread.lo.price : data.spread.hi.price
+      const newPrice = (o.orderQty > 0) ? data.spread.lo : data.spread.hi
       if (o.price != newPrice) {
         setOrderPrice(o.clOrdID, newPrice)
         o.price = newPrice
@@ -210,14 +210,7 @@ bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
   if (!res.length) return
   const instrument = res[res.length - 1]
   data.markPrice = instrument.markPrice
-  display()
-})
-
-bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
-  if (!res.length) return
-  const quote = res[res.length - 1]
-  data.spread = {lo:{price:quote.bidPrice,size:quote.bidSize}, hi:{price:quote.askPrice,size:quote.askSize}}
-  updateOrders()
+  data.spread = {lo: instrument.bidPrice, hi: instrument.askPrice}
   display()
 })
 
