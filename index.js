@@ -133,6 +133,15 @@ const limit = (qty, price, baseId) => {
     }).catch(error('limit'))
 }
 
+const closePosition = (price, baseId) => {
+  const id = `${baseId} ${Date.now()}`
+  status(`Closing at ${price}\n  '${id}'`)
+  return bitmex.request('POST', '/order', {
+      ordType: 'Limit', clOrdID: id, symbol: symbol,
+      price: price, execInst: 'Close'
+    }).catch(error('closePosition'))
+}
+
 const setOrderPrice = (clOrdID, newPrice) => {
   status(`Updating\n  '${clOrdID}' to ${newPrice}`)
   return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(e => {
@@ -171,7 +180,7 @@ const close = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
   const price = (qty > 0) ? data.spread.lo : data.spread.hi
-  limit(qty, price, 'UpdateMe Close').then(fetchOrders)
+  closePosition(price, 'UpdateMe Close').then(fetchOrders)
 }
 
 const cancel = () => {
