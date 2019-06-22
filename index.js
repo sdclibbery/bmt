@@ -8,6 +8,8 @@ const term = require( 'terminal-kit' ).terminal
 const symbol = 'XBTUSD'
 const leverage = 25
 const openWalletFraction = 0.5
+const stopPxFraction = 0.99
+const stopPriceFraction = 0.98
 
 // terminal setup and logging
 
@@ -60,9 +62,10 @@ const data = {
 const status = (s) => { log(s); data.status = s; display(); }
 const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
+const limitOrders = () => data.openOrders.filter(({ordType}) => ordType=='Limit')
 const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
-const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && data.openOrders.length==0)
-const canCancel = () => (data.openOrders && data.openOrders.length==1 && data.openOrders[0].symbol == symbol)
+const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0)
+const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol)
 
 // Display
 
@@ -87,8 +90,8 @@ const display = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  data.openOrders.forEach(({side,price,size,leavesQty,symbol}) => {
-    begin()('open order ').side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)('\n')
+  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
+    begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
 
   const ps = data.openPositions || []
@@ -102,10 +105,10 @@ const display = () => {
 
   begin()("'Q'uit")
   if (canBuySell()) {
-    term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell")('\n')
+    term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell")
   }
   if (canClose()) {
-    term('  ').brightBlue("'C'lose")('\n')
+    term('  ').brightBlue("'C'lose")
   }
   if (canCancel()) {
     term('  ').brightBlue("Ca'n'cel")
@@ -142,6 +145,17 @@ const closePosition = (price, baseId) => {
     }).catch(error('closePosition'))
 }
 
+const setStopClose = (side, stopPx, price) => {
+  stopPx = Math.round(stopPx)
+  price = Math.round(price)
+  const id = `StopClose ${Date.now()}`
+  status(`StopClose ${side} at ${stopPx} 4 ${price}\n  '${id}'`)
+  return bitmex.request('POST', '/order', {
+      ordType: 'StopLimit', clOrdID: id, symbol: symbol,
+      side: side, stopPx: stopPx, price: price, execInst: 'Close'
+    }).catch(error('setStopClose'))
+}
+
 const setOrderPrice = (clOrdID, newPrice) => {
   status(`Updating\n  '${clOrdID}' to ${newPrice}`)
   return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(e => {
@@ -166,14 +180,18 @@ const buy = () => {
   status(`Buying ${symbol}`)
   const price = data.spread.lo
   const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, 'UpdateMe').then(fetchOrders)
+  limit(qty, price, 'UpdateMe')
+    .then(() => setStopClose('Sell', price*stopPxFraction, price*stopPriceFraction))
+    .then(fetchOrders)
 }
 
 const sell = () => {
   status(`Selling ${symbol}`)
   const price = data.spread.hi
   const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, 'UpdateMe').then(fetchOrders)
+  limit(qty, price, 'UpdateMe')
+    .then(() => setStopClose('Buy', price/stopPxFraction, price/stopPriceFraction))
+    .then(fetchOrders)
 }
 
 const close = () => {
@@ -184,9 +202,11 @@ const close = () => {
 }
 
 const cancel = () => {
-  const clOrdID = data.openOrders[0].clOrdID
-  cancelOrder(clOrdID).then(fetchOrders)
-  status(`Cancelled '${clOrdID}'`)
+  status(`Cancelling orders`)
+  Promise.all(data.openOrders.map(({clOrdID}) => {
+    log(`Cancelled '${clOrdID}'`)
+    return cancelOrder(clOrdID)
+  })).then(fetchOrders)
 }
 
 const updateOrders = () => {
@@ -207,7 +227,7 @@ const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
     .then(w => { data.wallet = w }).then(display).catch(error('fetchWallet'))
 }
-bitmexWs.addStream(symbol, 'wallet', function (wallet, symbol, tableName) { fetchWallet() })
+fetchWallet(); setInterval(fetchWallet, 10000)
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   if (!res.length) return
@@ -234,7 +254,7 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
-fetchOrders(); setInterval(fetchOrders, 10000)
+fetchOrders(); setInterval(fetchOrders, 5000)
 bitmexWs.addStream(symbol, 'order', function (orders, symbol, tableName) {
   orders.filter(({ordStatus}) => ordStatus == 'Filled').forEach(o => {
     data.openOrders = data.openOrders.filter(({clOrdID}) => clOrdID != o.clOrdID)
