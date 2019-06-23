@@ -8,8 +8,8 @@ const term = require( 'terminal-kit' ).terminal
 const symbol = 'XBTUSD'
 const leverage = 25
 const openWalletFraction = 0.5
-const stopPxFraction = 0.99
-const stopPriceFraction = 0.98
+const stopPxFraction = 0.995
+const stopPriceFraction = 0.99
 
 // terminal setup and logging
 
@@ -140,7 +140,7 @@ const limit = (qty, price, baseId) => {
   const id = `${baseId} ${side} ${Date.now()}`
   status(`Limit ${side} ${qty} at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
-      ordType: 'Limit', clOrdID: id, symbol: symbol,
+      ordType: 'Limit', clOrdID: id, symbol: symbol, displayQty: 0,
       side: side, orderQty: qty, price: price
     }).catch(error('limit'))
 }

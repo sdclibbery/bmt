@@ -29,10 +29,13 @@ x Can get spread and mark from insturment ws?
 x Use 'Close' exec instruction for closing
 x Set stop loss when opening position
 x Sort out proper order updating that actually works
-* Indicate spread vs. mark price
+x Indicate spread vs. mark price
+x Make orders invisible?
+* Can set 'take profit' order and adjust its price
+* Indication of volume velocity
 * Indicate buy/sell fraction of recent trades: R->Y->G ?
 * Indicate some notion of volume velocity?
-velocity of how volume is affecting price movement
+* velocity of how volume is affecting price movement
   measure speed of price change and multiply by volume??
 * Candle graphs
 * Options to adjust stoploss : move up/down, make trailing?
