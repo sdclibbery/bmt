@@ -31,12 +31,14 @@ x Set stop loss when opening position
 x Sort out proper order updating that actually works
 x Indicate spread vs. mark price
 x Make orders invisible?
-* Can set 'take profit' order and adjust its price
+x Go back to using order book for spread
+* Indicate ACTUAL pnl side for each position, using mid-spread not mark price
 * Indication of volume velocity
 * Indicate buy/sell fraction of recent trades: R->Y->G ?
 * Indicate some notion of volume velocity?
 * velocity of how volume is affecting price movement
   measure speed of price change and multiply by volume??
+* Can set 'take profit' order and adjust its price
 * Candle graphs
 * Options to adjust stoploss : move up/down, make trailing?
 * Can half close open position

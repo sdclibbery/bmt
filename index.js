@@ -244,12 +244,18 @@ bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   data.lastTrade = trade
 })
 
+bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
+  if (!res.length) return
+  const quote = res[res.length - 1]
+  data.spread = {lo:quote.bidPrice, hi:quote.askPrice}
+  updateOrders()
+  display()
+})
+
 bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
   if (!res.length) return
   const instrument = res[res.length - 1]
   data.markPrice = instrument.markPrice
-  data.spread = {lo: instrument.bidPrice, hi: instrument.askPrice}
-  updateOrders()
   display()
 })
 
