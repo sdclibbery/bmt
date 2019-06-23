@@ -28,8 +28,12 @@ x Set leverage at startup, not when placing order (to improve order placement la
 x Can get spread and mark from insturment ws?
 x Use 'Close' exec instruction for closing
 x Set stop loss when opening position
-* Sort out proper order updating that actually works
-* Indicate buy/sell fraction in recent trades, maybe also indicate volume velocity?
+x Sort out proper order updating that actually works
+* Indicate spread vs. mark price
+* Indicate buy/sell fraction of recent trades: R->Y->G ?
+* Indicate some notion of volume velocity?
+velocity of how volume is affecting price movement
+  measure speed of price change and multiply by volume??
 * Candle graphs
 * Options to adjust stoploss : move up/down, make trailing?
 * Can half close open position

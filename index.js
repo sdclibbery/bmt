@@ -90,6 +90,15 @@ const display = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
+  term.indicator = (x, t) => {
+    const r = Math.max(0, Math.min(255, 127*(1+x)))
+    const g = Math.max(0, Math.min(255, 127*(1-x)))
+    return !x ? term('') : term.colorRgb(r,g,0, t)
+  }
+  const mid = !s ? 0 : (s.lo + s.hi)/2
+  const markMarkup = (data.markPrice - mid)/mid
+  begin().indicator(-markMarkup*250, 'Markup')('\n')
+
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
     begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
@@ -98,7 +107,7 @@ const display = () => {
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
     begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
     term('  entry ').yellow(avgEntryPrice)(' mark ').magenta(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
-    term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))(' comm ').brightRed(commission*100)('%')('\n')
+    term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))('\n')
   })
 
   begin()('\n').grey()(data.status)('\n')
@@ -227,7 +236,7 @@ const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
     .then(w => { data.wallet = w }).then(display).catch(error('fetchWallet'))
 }
-fetchWallet(); setInterval(fetchWallet, 5000)
+fetchWallet(); setInterval(fetchWallet, 10000)
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   if (!res.length) return
@@ -254,6 +263,7 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
+fetchWallet(); setInterval(fetchOrders, 5000)
 bitmexWs.addStream(symbol, 'order', function (orders, symbol, tableName) {
   data.openOrders = orders.filter(({ordStatus}) => ordStatus == 'New')
 })
