@@ -27,9 +27,9 @@ x Show mark price alongside recent trade, not as part of position
 x Set leverage at startup, not when placing order (to improve order placement latency)
 x Can get spread and mark from insturment ws?
 x Use 'Close' exec instruction for closing
-* Set stop loss when opening position
+x Set stop loss when opening position
 * Sort out proper order updating that actually works
-* Options to adjust stoploss : move up/down, make trailing?
 * Indicate buy/sell fraction in recent trades, maybe also indicate volume velocity?
 * Candle graphs
+* Options to adjust stoploss : move up/down, make trailing?
 * Can half close open position

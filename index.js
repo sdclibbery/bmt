@@ -227,7 +227,7 @@ const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
     .then(w => { data.wallet = w }).then(display).catch(error('fetchWallet'))
 }
-fetchWallet(); setInterval(fetchWallet, 10000)
+fetchWallet(); setInterval(fetchWallet, 5000)
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   if (!res.length) return
@@ -254,9 +254,6 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
-fetchOrders(); setInterval(fetchOrders, 5000)
 bitmexWs.addStream(symbol, 'order', function (orders, symbol, tableName) {
-  orders.filter(({ordStatus}) => ordStatus == 'Filled').forEach(o => {
-    data.openOrders = data.openOrders.filter(({clOrdID}) => clOrdID != o.clOrdID)
-  })
+  data.openOrders = orders.filter(({ordStatus}) => ordStatus == 'New')
 })
