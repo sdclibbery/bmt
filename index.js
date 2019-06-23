@@ -1,7 +1,8 @@
 const BitmexRequest = require('bitmex-request').BitmexRequest
-const BitMEXClient = require('bitmex-realtime-api');
+const BitMEXClient = require('bitmex-realtime-api')
 const credentials = require('./bitmex_credentials')
 const term = require( 'terminal-kit' ).terminal
+const hsl = require('hsl-to-hex')
 
 // constants
 
@@ -69,6 +70,7 @@ const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.ope
 
 // Display
 
+const clamp = (l, h, x) => Math.min(h, Math.max(l, x))
 const display = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
@@ -91,9 +93,8 @@ const display = () => {
   }
 
   term.indicator = (x, t) => {
-    const r = Math.max(0, Math.min(255, 127*(1+x)))
-    const g = Math.max(0, Math.min(255, 127*(1-x)))
-    return !x ? term('') : term.colorRgb(r,g,0, t)
+    const hue = 255 * (1 - clamp(-1,1,x)) / 6
+    return !x ? term('') : term.colorRgbHex(hsl(hue,100,50), t)
   }
   const midSpreadPrice = !s ? 0 : (s.lo + s.hi)/2
   const markMarkup = (data.markPrice - midSpreadPrice)/midSpreadPrice

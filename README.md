@@ -32,7 +32,7 @@ x Sort out proper order updating that actually works
 x Indicate spread vs. mark price
 x Make orders invisible?
 x Go back to using order book for spread
-* Indicate ACTUAL pnl side for each position, using mid-spread not mark price
+x Indicate ACTUAL pnl side for each position, using mid-spread not mark price
 * Use HSL for indicator colour
 * Indication of volume velocity
 * Indicate buy/sell fraction of recent trades: R->Y->G ?
