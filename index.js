@@ -95,8 +95,8 @@ const display = () => {
     const g = Math.max(0, Math.min(255, 127*(1-x)))
     return !x ? term('') : term.colorRgb(r,g,0, t)
   }
-  const mid = !s ? 0 : (s.lo + s.hi)/2
-  const markMarkup = (data.markPrice - mid)/mid
+  const midSpreadPrice = !s ? 0 : (s.lo + s.hi)/2
+  const markMarkup = (data.markPrice - midSpreadPrice)/midSpreadPrice
   begin().indicator(-markMarkup*250, 'Markup')('\n')
 
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
@@ -104,10 +104,11 @@ const display = () => {
   })
 
   const ps = data.openPositions || []
-  ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,unrealisedPnl,unrealisedRoePcnt,realisedPnl,markPrice,liquidationPrice,commission}) => {
+  ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
+    const pnl = (midSpreadPrice - avgEntryPrice) * currentQty
     begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
-    term('  entry ').yellow(avgEntryPrice)(' mark ').magenta(markPrice)(' liq ').brightRed(liquidationPrice)('\n')
-    term('  pnl ').sign(units(unrealisedPnl))('(').sign(Math.round(unrealisedRoePcnt*100))('%)/').sign(units(realisedPnl))('\n')
+    term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('\n')
+    term('  pnl ').sign(units(pnl))('\n')
   })
 
   begin()('\n').grey()(data.status)('\n')
