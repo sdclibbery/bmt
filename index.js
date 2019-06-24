@@ -3,6 +3,7 @@ const BitMEXClient = require('bitmex-realtime-api')
 const credentials = require('./bitmex_credentials')
 const term = require( 'terminal-kit' ).terminal
 const hsl = require('hsl-to-hex')
+const logger = require('./logger').createLogger(`bmt.log`)
 
 // constants
 
@@ -22,15 +23,18 @@ const terminate = (code) => {
 	term.processExit(code)
 }
 const error = (context) => (...args) => {
+  logger.sync.error(context, ...args)
   term.fullscreen(false)
   console.error(context, ...args)
   term.fullscreen(true)
 }
 const log = (...args) => {
+  logger.info(...args)
   term.fullscreen(false)
   console.log(...args)
   term.fullscreen(true)
 }
+log('Startup')
 
 // Bitmex clients
 
@@ -252,6 +256,10 @@ bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
   data.spread = {lo:quote.bidPrice, hi:quote.askPrice}
   updateOrders()
   display()
+})
+
+bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
+//  log(res)
 })
 
 bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
