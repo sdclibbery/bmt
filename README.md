@@ -38,9 +38,9 @@ x Logging to file
 x Limit stops no use: switch to market
 x Fix order fetch
 * Can marketify order
-* Update orders on manual trigger?
 * Can make stop loss trailing
 * Can move stoploss up/down
+* Update orders only on manual trigger
 * Indication of volume velocity
  * Use trade ws feed
  * Need to estimate velocity from that discrete input

@@ -70,6 +70,7 @@ const limitOrders = () => data.openOrders.filter(({ordType}) => ordType=='Limit'
 const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
 const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0)
 const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol)
+const canMarketify = () => (limitOrders().length>0 && limitOrders()[0].symbol == symbol)
 
 // Display
 
@@ -118,15 +119,10 @@ const display = () => {
   begin()('\n').grey()(data.status)('\n')
 
   begin()("'Q'uit")
-  if (canBuySell()) {
-    term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell")
-  }
-  if (canClose()) {
-    term('  ').brightBlue("'C'lose")
-  }
-  if (canCancel()) {
-    term('  ').brightBlue("Ca'n'cel")
-  }
+  if (canBuySell()) { term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell") }
+  if (canClose()) { term('  ').brightBlue("'C'lose") }
+  if (canCancel()) { term('  ').brightBlue("Ca'n'cel") }
+  if (canMarketify()) { term('  ').brightMagenta("'M'arketify") }
 }
 display()
 term.on('key', (name, matches, data) => {
@@ -136,6 +132,7 @@ term.on('key', (name, matches, data) => {
   if (canBuySell() && is('s')) { sell() }
   if (canClose() && is('c')) { close() }
   if (canCancel() && is('n')) { cancel() }
+  if (canMarketify() && is('m')) { marketify() }
 })
 
 // api calls
@@ -148,6 +145,15 @@ const limit = (qty, price, baseId) => {
       ordType: 'Limit', clOrdID: id, symbol: symbol, displayQty: 0,
       side: side, orderQty: qty, price: price
     }).catch(error('limit'))
+}
+
+const market = (qty) => {
+  const side = qty>0 ? 'Buy' : 'Sell'
+  status(`Market ${side} ${qty}`)
+  return bitmex.request('POST', '/order', {
+      ordType: 'Market', symbol: symbol, displayQty: 0,
+      side: side, orderQty: qty
+    }).catch(error('market'))
 }
 
 const closePosition = (price, baseId) => {
@@ -183,7 +189,8 @@ const setOrderPrice = (clOrdID, newPrice) => {
 }
 
 const cancelOrder = (clOrdID) => {
-  status(`Cancelling\n  '${clOrdID}'`)
+  status(`Cancelling '${clOrdID}'`)
+  data.openOrders = data.openOrders.filter(o => o.clOrdID != clOrdID)
   return bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).catch(error('cancelOrder'))
 }
 
@@ -207,6 +214,14 @@ const sell = () => {
     .then(fetchOrders)
 }
 
+const marketify = () => {
+  Promise.all(limitOrders().map(o => {
+    status(`Converting to market ${o.clOrdID}`)
+    cancelOrder(o.clOrdID)
+    return market(o.orderQty)
+  })).then(fetchOrders)
+}
+
 const close = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
@@ -217,7 +232,6 @@ const close = () => {
 const cancel = () => {
   status(`Cancelling orders`)
   Promise.all(data.openOrders.map(({clOrdID}) => {
-    log(`Cancelled '${clOrdID}'`)
     return cancelOrder(clOrdID)
   })).then(fetchOrders)
 }
