@@ -10,8 +10,7 @@ const logger = require('./logger').createLogger(`bmt.log`)
 const symbol = 'XBTUSD'
 const leverage = 25
 const openWalletFraction = 0.5
-const stopPxFraction = 0.995
-const stopPriceFraction = 0.99
+const stopPxFraction = 0.993
 
 // terminal setup and logging
 
@@ -160,14 +159,13 @@ const closePosition = (price, baseId) => {
     }).catch(error('closePosition'))
 }
 
-const setStopClose = (side, stopPx, price) => {
+const setStopClose = (side, stopPx) => {
   stopPx = Math.round(stopPx)
-  price = Math.round(price)
   const id = `StopClose ${Date.now()}`
-  status(`StopClose ${side} at ${stopPx} 4 ${price}\n  '${id}'`)
+  status(`StopClose ${side} at ${stopPx}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
-      ordType: 'StopLimit', clOrdID: id, symbol: symbol,
-      side: side, stopPx: stopPx, price: price, execInst: 'Close'
+      ordType: 'Stop', clOrdID: id, symbol: symbol,
+      side: side, stopPx: stopPx, execInst: 'Close'
     }).catch(error('setStopClose'))
 }
 
@@ -196,7 +194,7 @@ const buy = () => {
   const price = data.spread.lo
   const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe')
-    .then(() => setStopClose('Sell', price*stopPxFraction, price*stopPriceFraction))
+    .then(() => setStopClose('Sell', price*stopPxFraction))
     .then(fetchOrders)
 }
 
@@ -205,7 +203,7 @@ const sell = () => {
   const price = data.spread.hi
   const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe')
-    .then(() => setStopClose('Buy', price/stopPxFraction, price/stopPriceFraction))
+    .then(() => setStopClose('Buy', price/stopPxFraction))
     .then(fetchOrders)
 }
 
@@ -270,8 +268,10 @@ bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
 })
 
 bitmexWs.addStream(symbol, 'position', function (positions, symbol, tableName) {
+  const prevCount = (data.openPositions || []).length
   data.openPositions = positions.filter(({isOpen}) => isOpen)
   display()
+  if (prevCount != data.openPositions.length) { fetchOrders() }
 })
 
 const fetchOrders = () => {
@@ -279,7 +279,4 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
-fetchWallet(); setInterval(fetchOrders, 5000)
-bitmexWs.addStream(symbol, 'order', function (orders, symbol, tableName) {
-  data.openOrders = orders.filter(({ordStatus}) => ordStatus == 'New')
-})
+fetchOrders(); setInterval(fetchOrders, 5000)

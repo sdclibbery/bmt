@@ -35,6 +35,12 @@ x Go back to using order book for spread
 x Indicate ACTUAL pnl side for each position, using mid-spread not mark price
 x Use HSL for indicator colour
 x Logging to file
+x Limit stops no use: switch to market
+x Fix order fetch
+* Can marketify order
+* Update orders on manual trigger?
+* Can make stop loss trailing
+* Can move stoploss up/down
 * Indication of volume velocity
  * Use trade ws feed
  * Need to estimate velocity from that discrete input
@@ -45,7 +51,6 @@ x Logging to file
 * Indicate some notion of volume velocity?
 * velocity of how volume is affecting price movement
   measure speed of price change and multiply by volume??
-* Can set 'take profit' order and adjust its price
 * Candle graphs
-* Options to adjust stoploss : move up/down, make trailing?
+* Can set 'take profit' order and adjust its price
 * Can half close open position
