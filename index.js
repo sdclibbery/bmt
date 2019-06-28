@@ -9,8 +9,8 @@ const logger = require('./logger').createLogger(`bmt.log`)
 
 const symbol = 'XBTUSD'
 const leverage = 25
-const openWalletFraction = 0.5
-const stopPxFraction = 0.993
+const openWalletFraction = 0.505
+const stopPxFraction = 0.9925
 
 // terminal setup and logging
 

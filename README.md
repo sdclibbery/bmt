@@ -37,9 +37,11 @@ x Use HSL for indicator colour
 x Logging to file
 x Limit stops no use: switch to market
 x Fix order fetch
-* Can marketify order
-* Can make stop loss trailing
+x Can marketify order
+x Tweak stoploss px
 * Can move stoploss up/down
+* Can set 'take profit'
+* Can make stop loss trailing
 * Update orders only on manual trigger
 * Indication of volume velocity
  * Use trade ws feed
