@@ -40,19 +40,17 @@ x Fix order fetch
 x Can marketify order
 x Tweak stoploss px
 * Can move stoploss up/down
+* Retry 'system overloaded' errors
+* Support selecting different SYmbol as cmd line param
+* Look at tracking buy/sell 'push' indicators
 * Can set 'take profit'
 * Can make stop loss trailing
-* Update orders only on manual trigger
 * Indication of volume velocity
  * Use trade ws feed
  * Need to estimate velocity from that discrete input
   * Calculate average recent velocity on each trade as volume / time since last trade
    * Then mix that into a rolling average velocity, weighted based on time since last update
  * Also track velocity for each side alone as well?
-* Indicate buy/sell fraction of recent trades: R->Y->G ?
-* Indicate some notion of volume velocity?
-* velocity of how volume is affecting price movement
-  measure speed of price change and multiply by volume??
 * Candle graphs
 * Can set 'take profit' order and adjust its price
 * Can half close open position

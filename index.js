@@ -66,11 +66,13 @@ const data = {
 const status = (s) => { log(s); data.status = s; display(); }
 const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
-const limitOrders = () => data.openOrders.filter(({ordType}) => ordType=='Limit')
+const limitOrders = () => data.openOrders.filter(o => o.ordType=='Limit' && o.symbol == symbol)
+const stopOrders = () => data.openOrders.filter(o => o.ordType=='Stop' && o.symbol == symbol)
 const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
 const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0)
 const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol)
-const canMarketify = () => (limitOrders().length>0 && limitOrders()[0].symbol == symbol)
+const canMoveStop = () => stopOrders().length > 0
+const canMarketify = () => limitOrders().length > 0
 
 // Display
 
@@ -119,10 +121,11 @@ const display = () => {
   begin()('\n').grey()(data.status)('\n')
 
   begin()("'Q'uit")
-  if (canBuySell()) { term('  ').side('Buy', "'B'uy")('  ').side('Sell', "'S'ell") }
-  if (canClose()) { term('  ').brightBlue("'C'lose") }
-  if (canCancel()) { term('  ').brightBlue("Ca'n'cel") }
-  if (canMarketify()) { term('  ').brightMagenta("'M'arketify") }
+  if (canBuySell()) { term.side('Buy', "'B'uy")('  ').side('Sell', "'S'ell") }
+  if (canClose()) { term.wrap("  ^B'C'lose") }
+  if (canCancel()) { term.wrap("  ^BCa'n'cel") }
+  if (canMarketify()) { term.wrap("  ^M'M'arketify") }
+  if (canMoveStop()) { term.wrap("  ^MStop'U'p Stop'D'own") }
 }
 display()
 term.on('key', (name, matches, data) => {
@@ -133,6 +136,8 @@ term.on('key', (name, matches, data) => {
   if (canClose() && is('c')) { close() }
   if (canCancel() && is('n')) { cancel() }
   if (canMarketify() && is('m')) { marketify() }
+  if (canMoveStop() && is('u')) { stopUp() }
+  if (canMoveStop() && is('d')) { stopDown() }
 })
 
 // api calls
@@ -165,27 +170,34 @@ const closePosition = (price, baseId) => {
     }).catch(error('closePosition'))
 }
 
-const setStopClose = (side, stopPx) => {
+const stopClose = (side, stopPx) => {
   stopPx = Math.round(stopPx)
   const id = `StopClose ${Date.now()}`
   status(`StopClose ${side} at ${stopPx}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Stop', clOrdID: id, symbol: symbol,
       side: side, stopPx: stopPx, execInst: 'Close'
-    }).catch(error('setStopClose'))
+    }).catch(error('stopClose'))
 }
 
 const setOrderPrice = (clOrdID, newPrice) => {
   status(`Updating\n  '${clOrdID}' to ${newPrice}`)
-  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(e => {
-      if (e.toString().includes('Invalid ordStatus')) {
-        log(`Invalid ordStatus: removing order\n  ${clOrdID}`)
-        data.openOrders = data.openOrders.filter(o => o.clOrdID != clOrdID)
-        display()
-      } else {
-        error('setOrderPrice')(e)
-      }
-    })
+  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(handleOrderUpdateError('setOrderPrice'))
+}
+
+const setStopPx = (clOrdID, newStopPx) => {
+  status(`Updating\n  '${clOrdID}' to ${newStopPx}`)
+  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, stopPx: newStopPx }).catch(handleOrderUpdateError('setStopPx'))
+}
+
+const handleOrderUpdateError = (context) => e => {
+  if (e.toString().includes('Invalid ordStatus')) {
+    log(`${context}: Invalid ordStatus: removing order\n  ${clOrdID}`)
+    data.openOrders = data.openOrders.filter(o => o.clOrdID != clOrdID)
+    display()
+  } else {
+    error(context)(e)
+  }
 }
 
 const cancelOrder = (clOrdID) => {
@@ -201,7 +213,7 @@ const buy = () => {
   const price = data.spread.lo
   const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe')
-    .then(() => setStopClose('Sell', price*stopPxFraction))
+    .then(() => stopClose('Sell', price*stopPxFraction))
     .then(fetchOrders)
 }
 
@@ -210,7 +222,7 @@ const sell = () => {
   const price = data.spread.hi
   const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe')
-    .then(() => setStopClose('Buy', price/stopPxFraction))
+    .then(() => stopClose('Buy', price/stopPxFraction))
     .then(fetchOrders)
 }
 
@@ -219,6 +231,22 @@ const marketify = () => {
     status(`Converting to market ${o.clOrdID}`)
     cancelOrder(o.clOrdID)
     return market(o.orderQty)
+  })).then(fetchOrders)
+}
+
+const stopUp = () => {
+  Promise.all(stopOrders().map(o => {
+    status(`Up stop ${o.clOrdID}`)
+    const newStopPx = Math.round(o.stopPx / Math.sqrt(Math.sqrt(stopPxFraction)))
+    return setStopPx(o.clOrdID, newStopPx)
+  })).then(fetchOrders)
+}
+
+const stopDown = () => {
+  Promise.all(stopOrders().map(o => {
+    status(`Down stop ${o.clOrdID}`)
+    const newStopPx = Math.round(o.stopPx * Math.sqrt(Math.sqrt(stopPxFraction)))
+    return setStopPx(o.clOrdID, newStopPx)
   })).then(fetchOrders)
 }
 
