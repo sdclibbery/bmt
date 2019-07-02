@@ -57,6 +57,7 @@ const units = (x) => x/100000000
 
 const data = {
   lastTrade: {},
+  recentTrades: [],
   wallet: [],
   spread: undefined,
   openOrders: [],
@@ -109,6 +110,21 @@ const display = () => {
     term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('\n')
     term('  pnl ').sign(units(pnl))('\n')
   })
+
+  {
+    const interval = 1
+    const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
+    const buyVol = trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
+    const sellVol = trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
+    begin()(`1: ${trades.length} `).side('Buy', buyVol)(' ').side('Sell', sellVol)('\n')
+  }
+  {
+    const interval = 10
+    const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
+    const buyVol = trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
+    const sellVol = trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
+    begin()(`10: ${trades.length} `).side('Buy', buyVol)(' ').side('Sell', sellVol)('\n')
+  }
 
   begin()('\n').grey()(data.status)('\n')
 
@@ -291,7 +307,10 @@ bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
 })
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
-//  log(res)
+  data.recentTrades = res
+        .map(t => {return {timestamp:Date.parse(t.timestamp), side:t.side, size:t.size, price: t.price}})
+        .filter(({timestamp}) => timestamp >= Date.now() - 60000)
+  display()
 })
 
 bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
