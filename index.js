@@ -114,8 +114,8 @@ const display = () => {
 
   const buySellIndicator = (interval) => {
     const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
-    const buyVol = trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
-    const sellVol = trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
+    const buyVol = Math.round(trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
+    const sellVol = Math.round(trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
     const ratio = buyVol/sellVol
     begin()(`BS ${interval}s:\t`).side('Buy', buyVol)('\t').side('Sell', sellVol)('\t').sign(dp2(Math.log(ratio)))('\n')
   }
