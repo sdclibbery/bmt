@@ -82,6 +82,7 @@ const display = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
   const begin = () => term.styleReset()
+  const dp2 = (x) => Number.parseFloat(x).toFixed(2)
 
   term.clear().moveTo(1,1)
 
@@ -111,20 +112,15 @@ const display = () => {
     term('  pnl ').sign(units(pnl))('\n')
   })
 
-  {
-    const interval = 1
+  const buySellIndicator = (interval) => {
     const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
     const buyVol = trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
     const sellVol = trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
-    begin()(`1: ${trades.length} `).side('Buy', buyVol)(' ').side('Sell', sellVol)('\n')
+    const ratio = buyVol/sellVol
+    begin()(`BS ${interval}s:\t`).side('Buy', buyVol)('\t').side('Sell', sellVol)('\t').sign(dp2(Math.log(ratio)))('\n')
   }
-  {
-    const interval = 10
-    const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
-    const buyVol = trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
-    const sellVol = trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval
-    begin()(`10: ${trades.length} `).side('Buy', buyVol)(' ').side('Sell', sellVol)('\n')
-  }
+  buySellIndicator(1)
+  buySellIndicator(10)
 
   begin()('\n').grey()(data.status)('\n')
 
