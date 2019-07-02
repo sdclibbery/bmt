@@ -98,14 +98,6 @@ const display = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  term.indicator = (x, t) => {
-    const hue = 255 * (1 - clamp(-1,1,x)) / 6
-    return !x ? term('') : term.colorRgbHex(hsl(hue,100,50), t)
-  }
-  const midSpreadPrice = !s ? 0 : (s.lo + s.hi)/2
-  const markMarkup = (data.markPrice - midSpreadPrice)/midSpreadPrice
-  begin().indicator(-markMarkup*250, 'Markup')('\n')
-
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
     begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
@@ -121,7 +113,7 @@ const display = () => {
   begin()('\n').grey()(data.status)('\n')
 
   begin()("'Q'uit")
-  if (canBuySell()) { term.side('Buy', "'B'uy")('  ').side('Sell', "'S'ell") }
+  if (canBuySell()) { term.side('Buy', " 'B'uy").side('Sell', " 'S'ell") }
   if (canClose()) { term.wrap("  ^B'C'lose") }
   if (canCancel()) { term.wrap("  ^BCa'n'cel") }
   if (canMarketify()) { term.wrap("  ^M'M'arketify") }
