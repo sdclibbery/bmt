@@ -86,7 +86,9 @@ const display = () => {
 
   term.clear().moveTo(1,1)
 
-  begin()(`Testnet: ${credentials.testnet}`)('\n')
+  if (credentials.testnet) {
+    begin()('<TestNet>\n')
+  }
 
   begin()('wallet')(' ').brightBlue(units(walletTotal()))(' ')(walletCurrency())
   term('\n')
@@ -95,23 +97,11 @@ const display = () => {
   begin()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
 
   const s = data.spread
-  const midSpreadPrice = s?(s.hi+s.lo)/2:0
+  const midSpreadPrice = s ? (s.hi+s.lo)/2 : 0
   begin()('spread ')
   if (s) {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
-
-  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
-    begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
-  })
-
-  const ps = data.openPositions || []
-  ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
-    const pnl = (midSpreadPrice - avgEntryPrice) * currentQty
-    begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
-    term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('\n')
-    term('  pnl ').sign(units(pnl))('\n')
-  })
 
   const buySellIndicator = (interval) => {
     const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
@@ -129,6 +119,19 @@ const display = () => {
   buySellIndicator(5)
   buySellIndicator(20)
   buySellIndicator(60)
+
+  begin()('\n')
+  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
+    begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
+  })
+
+  const ps = data.openPositions || []
+  ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
+    const pnl = (midSpreadPrice - avgEntryPrice) * currentQty
+    begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
+    term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('\n')
+    term('  pnl ').sign(units(pnl))('\n')
+  })
 
   begin()('\n').grey()(data.status)('\n')
 

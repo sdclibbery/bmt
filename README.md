@@ -41,12 +41,10 @@ x Can marketify order
 x Tweak stoploss px
 x Can move stoploss up/down
 * Retry 'system overloaded' errors (or whatever they're called now)
-* Support selecting different SYmbol as cmd line param
-* Look at tracking buy/sell 'push' indicators
- * Use trade ws feed
- * Need to estimate velocity from that discrete input
-  * Calculate average recent velocity on each trade as volume / time since last trade
-   * Then mix that into a rolling average velocity, weighted based on time since last update
+* Support selecting different symbol as cmd line param
+x Look at tracking buy/sell 'push' indicators
+ x Use trade ws feed
+ x Show average buy/sell velocity over various timescales
 * Candle graphs
 * Can set 'take profit' order and adjust its price
 * Can half close open position
