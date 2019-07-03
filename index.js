@@ -95,6 +95,7 @@ const display = () => {
   begin()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
 
   const s = data.spread
+  const midSpreadPrice = s?(s.hi+s.lo)/2:0
   begin()('spread ')
   if (s) {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
