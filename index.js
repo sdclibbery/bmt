@@ -108,11 +108,26 @@ const display = () => {
     const buyVol = Math.round(trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
     const sellVol = Math.round(trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
     const totalVol = buyVol + sellVol
+
+    let buyBarSize
+    let sellBarSize
+    let barChar
     const maxBars = 8
-    const volLimit = 300000
-    const buyBarSize = (totalVol<volLimit) ? Math.round(maxBars*buyVol/volLimit) : Math.round(2*maxBars*buyVol/totalVol)
-    const sellBarSize = (totalVol<volLimit) ? Math.round(maxBars*sellVol/volLimit) : Math.round(2*maxBars*sellVol/totalVol)
-    const barChar = (totalVol<volLimit) ? '□' : '■'
+    const loVolLimit = 50000
+    const hiVolLimit = 300000
+    if (totalVol < loVolLimit) {
+      buyBarSize = Math.round(maxBars*buyVol/loVolLimit)
+      sellBarSize = Math.round(maxBars*sellVol/loVolLimit)
+      barChar = '•'
+    } elseif (totalVol < hiVolLimit) {
+        buyBarSize = Math.round(maxBars*buyVol/hiVolLimit)
+        sellBarSize = Math.round(maxBars*sellVol/hiVolLimit)
+        barChar = '□'
+    } else {
+      buyBarSize = Math.round(2*maxBars*buyVol/totalVol)
+      sellBarSize = Math.round(2*maxBars*sellVol/totalVol)
+      barChar = '■'
+    }
     begin()(`BS ${interval}s:\t`).side('Buy', buyVol)('\t').side('Sell', sellVol)('\t')
         .side('Buy',  barChar.repeat(buyBarSize)).side('Sell', barChar.repeat(sellBarSize))('\n')
   }
