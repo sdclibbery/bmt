@@ -121,10 +121,12 @@ const display = () => {
     const volLimit = 200000
     const buyBarSize = (totalVol<volLimit) ? Math.round(maxBars*buyVol/volLimit) : Math.round(2*maxBars*buyVol/totalVol)
     const sellBarSize = (totalVol<volLimit) ? Math.round(maxBars*sellVol/volLimit) : Math.round(2*maxBars*sellVol/totalVol)
+    const barChar = (totalVol<volLimit) ? '□' : '■'
     begin()(`BS ${interval}s:\t`).side('Buy', buyVol)('\t').side('Sell', sellVol)('\t')
-        .side('Buy',  '■'.repeat(buyBarSize)).side('Sell', '■'.repeat(sellBarSize))('\n')
+        .side('Buy',  barChar.repeat(buyBarSize)).side('Sell', barChar.repeat(sellBarSize))('\n')
   }
   buySellIndicator(5)
+  buySellIndicator(20)
   buySellIndicator(60)
 
   begin()('\n').grey()(data.status)('\n')
