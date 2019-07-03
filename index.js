@@ -117,7 +117,7 @@ const display = () => {
     const buyVol = Math.round(trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
     const sellVol = Math.round(trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
     begin()(`BS ${interval}s:\t`).side('Buy', buyVol)('\t').side('Sell', sellVol)('\t')
-        .side(buyVol>sellVol?'Buy':'Sell', '■'.repeat(clamp(1, 16, Math.ceil((buyVol+sellVol)/1e3))))('\n')
+        .side(buyVol>sellVol?'Buy':'Sell', '■'.repeat(clamp(1, 12, Math.ceil((buyVol+sellVol)/10e3))))('\n')
   }
   buySellIndicator(5)
   buySellIndicator(60)
