@@ -109,7 +109,7 @@ const display = () => {
     const sellVol = Math.round(trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
     const totalVol = buyVol + sellVol
     const maxBars = 8
-    const volLimit = 200000
+    const volLimit = 400000
     const buyBarSize = (totalVol<volLimit) ? Math.round(maxBars*buyVol/volLimit) : Math.round(2*maxBars*buyVol/totalVol)
     const sellBarSize = (totalVol<volLimit) ? Math.round(maxBars*sellVol/volLimit) : Math.round(2*maxBars*sellVol/totalVol)
     const barChar = (totalVol<volLimit) ? '□' : '■'
