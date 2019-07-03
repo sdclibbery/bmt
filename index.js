@@ -113,16 +113,16 @@ const display = () => {
     let sellBarSize
     let barChar
     const maxBars = 8
-    const loVolLimit = 50000
-    const hiVolLimit = 300000
+    const loVolLimit = 100000
+    const hiVolLimit = 500000
     if (totalVol < loVolLimit) {
       buyBarSize = Math.round(maxBars*buyVol/loVolLimit)
       sellBarSize = Math.round(maxBars*sellVol/loVolLimit)
       barChar = '•'
     } else if (totalVol < hiVolLimit) {
-        buyBarSize = Math.round(maxBars*buyVol/hiVolLimit)
-        sellBarSize = Math.round(maxBars*sellVol/hiVolLimit)
-        barChar = '★'
+      buyBarSize = Math.round(2*maxBars*buyVol/totalVol)
+      sellBarSize = Math.round(2*maxBars*sellVol/totalVol)
+      barChar = '★'
     } else {
       buyBarSize = Math.round(2*maxBars*buyVol/totalVol)
       sellBarSize = Math.round(2*maxBars*sellVol/totalVol)
