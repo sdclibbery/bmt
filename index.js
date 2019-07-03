@@ -122,7 +122,7 @@ const display = () => {
     } else if (totalVol < hiVolLimit) {
         buyBarSize = Math.round(maxBars*buyVol/hiVolLimit)
         sellBarSize = Math.round(maxBars*sellVol/hiVolLimit)
-        barChar = '□'
+        barChar = '★'
     } else {
       buyBarSize = Math.round(2*maxBars*buyVol/totalVol)
       sellBarSize = Math.round(2*maxBars*sellVol/totalVol)
