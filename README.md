@@ -40,6 +40,9 @@ x Fix order fetch
 x Can marketify order
 x Tweak stoploss px
 x Can move stoploss up/down
+* Display rate limiting
+* Rewrite BS indicators not to store every single order, and to show a history graph rather than multiple averages
+* Option to double sell to reverse an open position
 * Retry 'system overloaded' errors (or whatever they're called now)
 * Support selecting different symbol as cmd line param
 x Look at tracking buy/sell 'push' indicators

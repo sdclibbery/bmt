@@ -78,7 +78,15 @@ const canMarketify = () => limitOrders().length > 0
 // Display
 
 const clamp = (l, h, x) => Math.min(h, Math.max(l, x))
+let rateLimiter = null
 const display = () => {
+  if (rateLimiter) { return }
+  rateLimiter = setTimeout(() => {
+    rateLimiter = null
+    reallyDisplay()
+  }, 50)
+}
+const reallyDisplay = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
   const begin = () => term.styleReset()
