@@ -39,6 +39,7 @@ const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
 const stopPxFraction = 0.9925
+let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
 
 // terminal setup and logging
 
@@ -61,7 +62,7 @@ const log = (...args) => {
   console.log(...args)
   term.fullscreen(true)
 }
-log('Startup')
+log(`Startup ${symbol}`)
 
 // Bitmex clients
 
@@ -77,7 +78,7 @@ const bitmex = new BitmexRequest({
     testnet: credentials.testnet,
     retryTimes: 2,
 })
-bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).then(log('Set leverage')).catch(error('setLeverage'))
+bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).then(log(`Set leverage x${leverage}`)).catch(error('setLeverage'))
 
 const units = (x) => x/100000000
 
@@ -391,3 +392,9 @@ const fetchOrders = () => {
     .then(display).catch(error('fetchOrders'))
 }
 fetchOrders(); setInterval(fetchOrders, 5000)
+
+const fetchTicksize = () => {
+  return bitmex.request('GET', '/instrument', { symbol:symbol, columns:'tickSize' })
+    .then(i => tickSize = parseFloat(i[0].tickSize) || tickSize).then(() => log(`${symbol} tick size ${tickSize}`)).catch(error('fetchOrders'))
+}
+fetchTicksize()

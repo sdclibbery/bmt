@@ -41,7 +41,10 @@ x Can marketify order
 x Tweak stoploss px
 x Can move stoploss up/down
 x Display rate limiting
-* Support selecting different symbol as cmd line param
+x Support selecting different symbol as cmd line param
+* Need to use appropriate rounding when creating/modifying orders in other symbols
+ x Get tick size
+ * Use it for rounding
 * Rewrite BS indicators not to store every single order, and to show a history graph rather than multiple averages
 * Retry 'system overloaded' errors (or whatever they're called now)
 x Look at tracking buy/sell 'push' indicators
