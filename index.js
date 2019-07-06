@@ -104,6 +104,24 @@ const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.ope
 const canMoveStop = () => stopOrders().length > 0
 const canMarketify = () => limitOrders().length > 0
 
+const roundToTickSize = (x) => Math.round(parseFloat(x)/tickSize)*tickSize
+testRoundToTickSize = (x) => log(`${x} -> ${roundToTickSize(x)}`)
+testRoundToTickSize(1)
+testRoundToTickSize(1.1)
+testRoundToTickSize(1.01)
+testRoundToTickSize(1.001)
+testRoundToTickSize(1.0001)
+testRoundToTickSize(1.0001)
+testRoundToTickSize(1.49)
+testRoundToTickSize(1.5)
+testRoundToTickSize(1.51)
+testRoundToTickSize(1.049)
+testRoundToTickSize(1.05)
+testRoundToTickSize(1.051)
+testRoundToTickSize(-0.99)
+testRoundToTickSize(-1)
+testRoundToTickSize(-1.01)
+
 // Display
 
 const clamp = (l, h, x) => Math.min(h, Math.max(l, x))
@@ -119,7 +137,6 @@ const reallyDisplay = () => {
   term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
   term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
   const begin = () => term.styleReset()
-  const dp2 = (x) => Number.parseFloat(x).toFixed(2)
 
   term.clear().moveTo(1,1)
 
@@ -278,7 +295,7 @@ const cancelOrder = (clOrdID) => {
 const buy = () => {
   status(`Buying ${symbol}`)
   const price = data.spread.lo
-  const qty = Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
+  const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe')
     .then(() => stopClose('Sell', price*stopPxFraction))
     .then(fetchOrders)
@@ -287,7 +304,7 @@ const buy = () => {
 const sell = () => {
   status(`Selling ${symbol}`)
   const price = data.spread.hi
-  const qty = -Math.floor(units(walletTotal())*leverage*price*openWalletFraction)
+  const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, 'UpdateMe')
     .then(() => stopClose('Buy', price/stopPxFraction))
     .then(fetchOrders)
@@ -304,7 +321,7 @@ const marketify = () => {
 const stopUp = () => {
   Promise.all(stopOrders().map(o => {
     status(`Up stop ${o.clOrdID}`)
-    const newStopPx = Math.round(o.stopPx / Math.sqrt(Math.sqrt(stopPxFraction)))
+    const newStopPx = roundToTickSize(o.stopPx / Math.sqrt(Math.sqrt(stopPxFraction)))
     return setStopPx(o.clOrdID, newStopPx)
   })).then(fetchOrders)
 }
@@ -312,7 +329,7 @@ const stopUp = () => {
 const stopDown = () => {
   Promise.all(stopOrders().map(o => {
     status(`Down stop ${o.clOrdID}`)
-    const newStopPx = Math.round(o.stopPx * Math.sqrt(Math.sqrt(stopPxFraction)))
+    const newStopPx = roundToTickSize(o.stopPx * Math.sqrt(Math.sqrt(stopPxFraction)))
     return setStopPx(o.clOrdID, newStopPx)
   })).then(fetchOrders)
 }
