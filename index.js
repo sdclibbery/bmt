@@ -141,9 +141,8 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  const toCandleChar = v => [' ','.','-','+','•','★','░','▒','▓','■','■'][Math.ceil(Math.min(v/10000, 9))]
-  begin().side('Buy', data.candles.map(c => toCandleChar(c.buyVolume*1000/candleSize)).join(''))('\n')
-  begin().side('Sell', data.candles.map(c => toCandleChar(c.sellVolume*1000/candleSize)).join(''))('\n')
+  begin(); data.candles.forEach(c => term.colorRgb(0, Math.min(c.buyVolume*1000/candleSize, 255), 0, '█')); term('\n')
+  begin(); data.candles.forEach(c => term.colorRgb(Math.min(c.sellVolume*1000/candleSize, 255), 0, 0, '█')); term('\n')
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
