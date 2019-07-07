@@ -41,6 +41,7 @@ const openWalletFraction = 0.505
 const stopPxFraction = 0.9925
 let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
 const candleSize = 30*1000
+const volumeScale = 1e-5
 
 // terminal setup and logging
 
@@ -141,9 +142,10 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  const candles = data.candles.slice(-(term.width)-1)
-  begin(); candles.forEach(c => term.colorRgb(0, Math.min(Math.floor(c.buyVolume*2/candleSize, 255)), 0, '█')); term('\n')
-  begin(); candles.forEach(c => term.colorRgb(Math.min(Math.floor(c.sellVolume*2/candleSize, 255)), 0, 0, '█')); term('\n')
+  const candles = data.candles.slice(-(term.width-1))
+  const scaleVol = v => 0.03 + Math.pow(v*volumeScale/(candleSize/1000), 0.75)
+  begin(); candles.forEach(c => term.colorRgb(0, Math.min(Math.floor(scaleVol(c.buyVolume)*255), 255), 0, '█')); term('\n')
+  begin(); candles.forEach(c => term.colorRgb(Math.min(Math.floor(scaleVol(c.sellVolume)*255), 255), 0, 0, '█')); term('\n')
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
