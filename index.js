@@ -142,8 +142,8 @@ const reallyDisplay = () => {
   }
 
   const candles = data.candles.slice(-(term.width)-1)
-  begin(); candles.forEach(c => term.colorRgb(0, Math.min(c.buyVolume*1000/candleSize, 255), 0, '█')); term('\n')
-  begin(); candles.forEach(c => term.colorRgb(Math.min(c.sellVolume*1000/candleSize, 255), 0, 0, '█')); term('\n')
+  begin(); candles.forEach(c => term.colorRgb(0, Math.min(Math.floor(c.buyVolume*2/candleSize, 255)), 0, '█')); term('\n')
+  begin(); candles.forEach(c => term.colorRgb(Math.min(Math.floor(c.sellVolume*2/candleSize, 255)), 0, 0, '█')); term('\n')
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
