@@ -143,7 +143,7 @@ const reallyDisplay = () => {
   }
 
   const candles = data.candles.slice(-(term.width-1))
-  const scaleVol = v => 0.05 + v*volumeScale/(candleSize/1000)
+  const scaleVol = v => 0.01 + v*volumeScale/(candleSize/1000)
   begin(); candles.forEach(c => term.colorRgb(0, Math.min(Math.floor(scaleVol(c.buyVolume)*255), 255), 0, '█')); term('\n')
   begin(); candles.forEach(c => term.colorRgb(Math.min(Math.floor(scaleVol(c.sellVolume)*255), 255), 0, 0, '█')); term('\n')
 
