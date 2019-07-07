@@ -42,10 +42,14 @@ x Tweak stoploss px
 x Can move stoploss up/down
 x Display rate limiting
 x Support selecting different symbol as cmd line param
+* Rewrite BS indicators not to store every single order, and to show a history graph rather than multiple averages
 * Need to use appropriate rounding when creating/modifying orders in other symbols
  x Get tick size
- * Use it for rounding
-* Rewrite BS indicators not to store every single order, and to show a history graph rather than multiple averages
+ x Use it for rounding
+ * Need to calculate qty different for other symbols: need to use BTC->USD price to calculate qty
+  ?? Need to understand first; numbers aren't adding up
+ * Should use half of available wallet balance, not half of total
+* Use ParticipateDoNotInitiate for opening position, and retry if fails?
 * Retry 'system overloaded' errors (or whatever they're called now)
 x Look at tracking buy/sell 'push' indicators
  x Use trade ws feed

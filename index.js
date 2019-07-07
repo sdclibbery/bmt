@@ -40,6 +40,7 @@ const leverage = 25
 const openWalletFraction = 0.505
 const stopPxFraction = 0.9925
 let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
+const candleSize = 30*1000
 
 // terminal setup and logging
 
@@ -86,13 +87,14 @@ const units = (x) => x/100000000
 
 const data = {
   lastTrade: {},
-  recentTrades: [],
+  candles: [],
   wallet: [],
   spread: undefined,
   openOrders: [],
   openPositions: undefined,
   status: 'Init',
 }
+const roundToTickSize = (x) => Number.parseFloat(x).toFixed(Math.floor(-Math.log10(tickSize)))
 const status = (s) => { log(s); data.status = s; display(); }
 const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
@@ -103,24 +105,6 @@ const canClose = () => (data.spread && data.openPositions && data.openPositions.
 const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol)
 const canMoveStop = () => stopOrders().length > 0
 const canMarketify = () => limitOrders().length > 0
-
-const roundToTickSize = (x) => Math.round(parseFloat(x)/tickSize)*tickSize
-testRoundToTickSize = (x) => log(`${x} -> ${roundToTickSize(x)}`)
-testRoundToTickSize(1)
-testRoundToTickSize(1.1)
-testRoundToTickSize(1.01)
-testRoundToTickSize(1.001)
-testRoundToTickSize(1.0001)
-testRoundToTickSize(1.0001)
-testRoundToTickSize(1.49)
-testRoundToTickSize(1.5)
-testRoundToTickSize(1.51)
-testRoundToTickSize(1.049)
-testRoundToTickSize(1.05)
-testRoundToTickSize(1.051)
-testRoundToTickSize(-0.99)
-testRoundToTickSize(-1)
-testRoundToTickSize(-1.01)
 
 // Display
 
@@ -157,37 +141,9 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  const buySellIndicator = (interval) => {
-    const trades = data.recentTrades.filter(({timestamp}) => timestamp > Date.now() - interval*1000)
-    const buyVol = Math.round(trades.filter(({side}) => side == 'Buy').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
-    const sellVol = Math.round(trades.filter(({side}) => side == 'Sell').map(({size}) => size).reduce((a,b)=>a+b, 0)/interval)
-    const totalVol = buyVol + sellVol
-
-    let buyBarSize
-    let sellBarSize
-    let barChar
-    const maxBars = 8
-    const loVolLimit = 100000
-    const hiVolLimit = 500000
-    if (totalVol < loVolLimit) {
-      buyBarSize = Math.round(maxBars*buyVol/loVolLimit)
-      sellBarSize = Math.round(maxBars*sellVol/loVolLimit)
-      barChar = '•'
-    } else if (totalVol < hiVolLimit) {
-      buyBarSize = Math.round(2*maxBars*buyVol/totalVol)
-      sellBarSize = Math.round(2*maxBars*sellVol/totalVol)
-      barChar = '★'
-    } else {
-      buyBarSize = Math.round(2*maxBars*buyVol/totalVol)
-      sellBarSize = Math.round(2*maxBars*sellVol/totalVol)
-      barChar = '■'
-    }
-    begin()(`BS ${interval}s:\t`).side('Buy', buyVol)('\t').side('Sell', sellVol)('\t')
-        .side('Buy',  barChar.repeat(buyBarSize)).side('Sell', barChar.repeat(sellBarSize))('\n')
-  }
-  buySellIndicator(5)
-  buySellIndicator(20)
-  buySellIndicator(60)
+  data.candles.forEach(c => {
+    begin()(`${(new Date(c.timestamp)).getHours()}:${(new Date(c.timestamp)).getMinutes()}:${(new Date(c.timestamp)).getSeconds()} L:${c.low} O:${c.open} C:${c.close} H:${c.high} B:${c.buyVolume} S:${c.sellVolume} \n`)
+  })
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
@@ -382,13 +338,6 @@ bitmexWs.addStream(symbol, 'quote', function (res, symbol, tableName) {
   display()
 })
 
-bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
-  data.recentTrades = res
-        .map(t => {return {timestamp:Date.parse(t.timestamp), side:t.side, size:t.size, price: t.price}})
-        .filter(({timestamp}) => timestamp >= Date.now() - 60000)
-  display()
-})
-
 bitmexWs.addStream(symbol, 'instrument', function (res, symbol, tableName) {
   if (!res.length) return
   const instrument = res[res.length - 1]
@@ -409,6 +358,34 @@ const fetchOrders = () => {
     .then(display).catch(error('fetchOrders'))
 }
 fetchOrders(); setInterval(fetchOrders, 5000)
+
+bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
+  res.forEach(t => {
+    const timestamp = Date.parse(t.timestamp)
+    const price = parseFloat(t.price)
+    const size = parseFloat(t.size)
+    let candle = data.candles[data.candles.length-1]
+    if (!candle || candle.openTimestamp < timestamp - candleSize) {
+      if (candle) { candle.close = candle.last }
+      candle = {
+        openTimestamp: candle ? candle.openTimestamp+candleSize : timestamp,
+        timestamp: timestamp,
+        open: candle ? candle.close : price,
+        low: price, high: price,
+        buyVolume: 0, sellVolume: 0,
+      }
+      data.candles.push(candle)
+    }
+    candle.timestamp = timestamp
+    candle.last = price
+    candle.low = Math.min(candle.low, price)
+    candle.high = Math.max(candle.high, price)
+    candle.buyVolume += t.side=='Buy' ? size : 0
+    candle.sellVolume += t.side=='Sell' ? size : 0
+  })
+  bitmexWs._data[tableName][symbol] = []
+  display()
+})
 
 const fetchTicksize = () => {
   return bitmex.request('GET', '/instrument', { symbol:symbol, columns:'tickSize' })
