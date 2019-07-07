@@ -141,7 +141,7 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  const toCandleChar = v => [' ','.','-','+','•','★','░','▒','▓','■','■'][Math.ceil(Math.min(v/200, 9))]
+  const toCandleChar = v => [' ','.','-','+','•','★','░','▒','▓','■','■'][Math.ceil(Math.min(v/2000, 9))]
   begin().side('Buy', data.candles.map(c => toCandleChar(c.buyVolume*1000/candleSize)).join(''))('\n')
   begin().side('Sell', data.candles.map(c => toCandleChar(c.sellVolume*1000/candleSize)).join(''))('\n')
 
