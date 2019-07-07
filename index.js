@@ -141,9 +141,9 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  data.candles.forEach(c => {
-    begin()(`${(new Date(c.timestamp)).getHours()}:${(new Date(c.timestamp)).getMinutes()}:${(new Date(c.timestamp)).getSeconds()} L:${c.low} O:${c.open} C:${c.close} H:${c.high} B:${c.buyVolume} S:${c.sellVolume} \n`)
-  })
+  const toCandleChar = v => [' ','.','-','+','•','★','░','▒','▓','■','■'][Math.ceil(Math.min(v/200, 9))]
+  begin().side('Buy', data.candles.map(c => toCandleChar(c.buyVolume*1000/candleSize)).join(''))('\n')
+  begin().side('Sell', data.candles.map(c => toCandleChar(c.sellVolume*1000/candleSize)).join(''))('\n')
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
