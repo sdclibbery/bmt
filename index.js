@@ -143,7 +143,6 @@ const reallyDisplay = () => {
   }
 
   const candles = data.candles.slice(-(term.width-1))
-  candles.forEach(c => begin()(`${(new Date(c.timestamp)).getMinutes()}:${(new Date(c.timestamp)).getSeconds()} `).side('Buy', c.buyVolume)(' ').side('Sell', c.sellVolume)('\n'))
   const scaleVol = v => 0.01 + v*volumeScale/(candleSize/1000)
   begin(); candles.forEach(c => term(`\x1b[38;2;0;${Math.floor(Math.min(scaleVol(c.buyVolume)*255, 255))};0m█`)); term('\n')
   begin(); candles.forEach(c => term(`\x1b[38;2;${Math.floor(Math.min(scaleVol(c.sellVolume)*255, 255))};0;0m█`)); term('\n')
