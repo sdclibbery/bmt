@@ -89,6 +89,8 @@ const units = (x) => x/100000000
 const data = {
   lastTrade: {},
   candles: [],
+  buyVelocity: 0,
+  sellVelocity: 0,
   wallet: [],
   spread: undefined,
   openOrders: [],
@@ -146,6 +148,8 @@ const reallyDisplay = () => {
   const scaleVol = v => 0.01 + v*volumeScale/(candleSize/1000)
   begin(); candles.forEach(c => term(`\x1b[38;2;0;${Math.floor(Math.min(scaleVol(c.buyVolume)*255, 255))};0m█`)); term('\n')
   begin(); candles.forEach(c => term(`\x1b[38;2;${Math.floor(Math.min(scaleVol(c.sellVolume)*255, 255))};0;0m█`)); term('\n')
+
+  begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').side('Sell', Math.round(data.sellVelocity))('\n')
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
@@ -384,10 +388,17 @@ bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
     candle.high = Math.max(candle.high, price)
     candle.buyVolume += t.side=='Buy' ? size : 0
     candle.sellVolume += t.side=='Sell' ? size : 0
+
+    data[t.side=='Buy' ? 'buyVelocity' : 'sellVelocity'] += size
   })
   bitmexWs._data[tableName][symbol] = []
   display()
 })
+setInterval(() => {
+  data.buyVelocity *= 0.8
+  data.sellVelocity *= 0.8
+  display()
+}, 1000)
 
 const fetchTicksize = () => {
   return bitmex.request('GET', '/instrument', { symbol:symbol, columns:'tickSize' })
