@@ -89,10 +89,8 @@ const units = (x) => x/100000000
 const data = {
   lastTrade: {},
   candles: [],
-  buyVelocityFast: 0,
-  sellVelocityFast: 0,
-  buyVelocitySlow: 0,
-  sellVelocitySlow: 0,
+  buyVelocity: 0,
+  sellVelocity: 0,
   wallet: [],
   spread: undefined,
   openOrders: [],
@@ -151,9 +149,7 @@ const reallyDisplay = () => {
   begin(); candles.forEach(c => term(`\x1b[38;2;0;${Math.floor(Math.min(scaleVol(c.buyVolume)*255, 255))};0m█`)); term('\n')
   begin(); candles.forEach(c => term(`\x1b[38;2;${Math.floor(Math.min(scaleVol(c.sellVolume)*255, 255))};0;0m█`)); term('\n')
 
-  begin()('vel ')
-    .side('Buy', Math.round(data.buyVelocityFast))(' ').side('Sell', Math.round(data.sellVelocityFast))('  ')
-    .side('Buy', Math.round(data.buyVelocitySlow))(' ').side('Sell', Math.round(data.sellVelocitySlow))('\n')
+  begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').side('Sell', Math.round(data.sellVelocity))('\n')
 
   begin()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
@@ -393,17 +389,14 @@ bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
     candle.buyVolume += t.side=='Buy' ? size : 0
     candle.sellVolume += t.side=='Sell' ? size : 0
 
-    data[t.side=='Buy' ? 'buyVelocityFast' : 'sellVelocityFast'] += size
-    data[t.side=='Buy' ? 'buyVelocitySlow' : 'sellVelocitySlow'] += size
+    data[t.side=='Buy' ? 'buyVelocity' : 'sellVelocity'] += size
   })
   bitmexWs._data[tableName][symbol] = []
   display()
 })
 setInterval(() => {
-  data.buyVelocityFast *= 0.9
-  data.sellVelocityFast *= 0.9
-  data.buyVelocitySlow *= 0.98
-  data.sellVelocitySlow *= 0.98
+  data.buyVelocity *= 0.9
+  data.sellVelocity *= 0.9
   display()
 }, 500)
 
