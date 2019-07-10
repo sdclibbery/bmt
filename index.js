@@ -395,10 +395,10 @@ bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   display()
 })
 setInterval(() => {
-  data.buyVelocity *= 0.75
-  data.sellVelocity *= 0.75
+  data.buyVelocity *= 0.9
+  data.sellVelocity *= 0.9
   display()
-}, 1000)
+}, 500)
 
 const fetchTicksize = () => {
   return bitmex.request('GET', '/instrument', { symbol:symbol, columns:'tickSize' })
