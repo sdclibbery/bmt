@@ -41,7 +41,8 @@ const openWalletFraction = 0.505
 const stopPxFraction = 0.9925
 let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
 const candleSize = 30*1000
-const volumeScale = 2e-5
+const volumeScale = 1e-5
+const velocityRelaxation = 0.9
 
 // terminal setup and logging
 
@@ -395,8 +396,8 @@ bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   display()
 })
 setInterval(() => {
-  data.buyVelocity *= 0.9
-  data.sellVelocity *= 0.9
+  data.buyVelocity *= velocityRelaxation
+  data.sellVelocity *= velocityRelaxation
   display()
 }, 500)
 
