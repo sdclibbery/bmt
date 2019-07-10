@@ -395,8 +395,8 @@ bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   display()
 })
 setInterval(() => {
-  data.buyVelocity *= 0.5
-  data.sellVelocity *= 0.5
+  data.buyVelocity *= 0.75
+  data.sellVelocity *= 0.75
   display()
 }, 1000)
 
