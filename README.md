@@ -42,11 +42,15 @@ x Tweak stoploss px
 x Can move stoploss up/down
 x Display rate limiting
 x Support selecting different symbol as cmd line param
-* Velocity tracking
+x Velocity tracking
 * Support/resistance levels
  * Can set support/resistance level and move up/down
- * When price moves outside level with enough velocity, open a position with a market order
+ * When price moves outside level, open a position with a market order
+  * With more velocity then recent
+  * With much more velocity than opposite direction
+  * Then after a price pause
  * When velocity slows, close position
+* Log order fills
 * Rewrite BS indicators not to store every single order, and to show a history graph rather than multiple averages
 * Need to use appropriate rounding when creating/modifying orders in other symbols
  x Get tick size

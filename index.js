@@ -168,8 +168,8 @@ const reallyDisplay = () => {
   begin()('\n').grey()(data.status)('\n')
 
   begin()("'Q'uit")
-  if (canBuySell()) { term.side('Buy', " 'B'uy").side('Sell', " 'S'ell") }
-  if (canClose()) { term.wrap("  ^B'C'lose") }
+  if (canBuySell()) { term.side('Buy', " 'b'uy").side('Sell', " 's'ell").side('Buy', " 'B'uyNow").side('Sell', " 'S'ellNow") }
+  if (canClose()) { term.wrap("  ^B'c'lose").wrap("  ^B'C'loseNow") }
   if (canCancel()) { term.wrap("  ^BCa'n'cel") }
   if (canMarketify()) { term.wrap("  ^M'M'arketify") }
   if (canMoveStop()) { term.wrap("  ^MStop'U'p Stop'D'own") }
@@ -180,7 +180,10 @@ term.on('key', (name, matches, data) => {
 	if (is('CTRL_C') || is('q')) { terminate() }
   if (canBuySell() && is('b')) { buy() }
   if (canBuySell() && is('s')) { sell() }
+  if (canBuySell() && is('B')) { buyNow() }
+  if (canBuySell() && is('S')) { sellNow() }
   if (canClose() && is('c')) { close() }
+  if (canClose() && is('C')) { closeNow() }
   if (canCancel() && is('n')) { cancel() }
   if (canMarketify() && is('m')) { marketify() }
   if (canMoveStop() && is('u')) { stopUp() }
@@ -199,21 +202,31 @@ const limit = (qty, price, baseId) => {
     }).catch(error('limit'))
 }
 
-const market = (qty) => {
+const market = (qty, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
+  const id = `${baseId} ${side} ${Date.now()}`
   status(`Market ${side} ${qty}`)
   return bitmex.request('POST', '/order', {
-      ordType: 'Market', symbol: symbol, displayQty: 0,
+      ordType: 'Market', clOrdID: id, symbol: symbol,
       side: side, orderQty: qty
     }).catch(error('market'))
 }
 
-const closePosition = (price, baseId) => {
-  const id = `${baseId} ${Date.now()}`
+const closePosition = (price, now, baseId) => {
+  const id = `${baseId} Close ${Date.now()}`
   status(`Closing at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
       price: price, execInst: 'Close'
+    }).catch(error('closePosition'))
+}
+
+const closePositionNow = (price, now, baseId) => {
+  const id = `${baseId} Close ${Date.now()}`
+  status(`Closing now at ${price}\n  '${id}'`)
+  return bitmex.request('POST', '/order', {
+      ordType: 'Market', clOrdID: id, symbol: symbol,
+      execInst: 'Close'
     }).catch(error('closePosition'))
 }
 
@@ -273,6 +286,24 @@ const sell = () => {
     .then(fetchOrders)
 }
 
+const buyNow = () => {
+  status(`Buying ${symbol} now`)
+  const price = data.spread.lo
+  const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
+  market(qty, 'Immediate')
+    .then(() => stopClose('Sell', price*stopPxFraction))
+    .then(fetchOrders)
+}
+
+const sellNow = () => {
+  status(`Selling ${symbol} now`)
+  const price = data.spread.hi
+  const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
+  market(qty, 'Immediate')
+    .then(() => stopClose('Buy', price/stopPxFraction))
+    .then(fetchOrders)
+}
+
 const marketify = () => {
   Promise.all(limitOrders().map(o => {
     status(`Converting to market ${o.clOrdID}`)
@@ -301,7 +332,14 @@ const close = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
   const price = (qty > 0) ? data.spread.lo : data.spread.hi
-  closePosition(price, 'UpdateMe Close').then(fetchOrders)
+  closePosition(price, 'UpdateMe').then(fetchOrders)
+}
+
+const closeNow = () => {
+  status(`Closing ${symbol} position`)
+  const qty = -data.openPositions[0].currentQty
+  const price = (qty > 0) ? data.spread.lo : data.spread.hi
+  closePositionNow(price, 'UpdateMe').then(fetchOrders)
 }
 
 const cancel = () => {
