@@ -196,7 +196,7 @@ term.on('key', (name, matches, data) => {
 
 const limit = (qty, price, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
-  const id = `${baseId} ${side} ${Date.now()}`
+  const id = `${baseId} Limit ${side} ${Date.now()}`
   status(`Limit ${side} ${qty} at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol, displayQty: 0,
@@ -204,9 +204,9 @@ const limit = (qty, price, baseId) => {
     }).catch(error('limit'))
 }
 
-const market = (qty, baseId) => {
+const market = (qty) => {
   const side = qty>0 ? 'Buy' : 'Sell'
-  const id = `${baseId} ${side} ${Date.now()}`
+  const id = `Market ${side} ${Date.now()}`
   status(`Market ${side} ${qty}`)
   return bitmex.request('POST', '/order', {
       ordType: 'Market', clOrdID: id, symbol: symbol,
@@ -214,7 +214,7 @@ const market = (qty, baseId) => {
     }).catch(error('market'))
 }
 
-const closePosition = (price, now, baseId) => {
+const closePosition = (price, baseId) => {
   const id = `${baseId} Close ${Date.now()}`
   status(`Closing at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
@@ -223,8 +223,8 @@ const closePosition = (price, now, baseId) => {
     }).catch(error('closePosition'))
 }
 
-const closePositionNow = (price, now, baseId) => {
-  const id = `${baseId} Close ${Date.now()}`
+const closePositionNow = (price, now) => {
+  const id = `CloseNow ${Date.now()}`
   status(`Closing now at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Market', clOrdID: id, symbol: symbol,
@@ -292,7 +292,7 @@ const buyNow = () => {
   status(`Buying ${symbol} now`)
   const price = data.spread.lo
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  market(qty, 'Immediate')
+  market(qty)
     .then(() => stopClose('Sell', price*stopPxFraction))
     .then(fetchOrders)
 }
@@ -301,7 +301,7 @@ const sellNow = () => {
   status(`Selling ${symbol} now`)
   const price = data.spread.hi
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  market(qty, 'Immediate')
+  market(qty)
     .then(() => stopClose('Buy', price/stopPxFraction))
     .then(fetchOrders)
 }
@@ -341,7 +341,7 @@ const closeNow = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
   const price = (qty > 0) ? data.spread.lo : data.spread.hi
-  closePositionNow(price, 'UpdateMe').then(fetchOrders)
+  closePositionNow(price).then(fetchOrders)
 }
 
 const cancel = () => {
