@@ -43,6 +43,17 @@ x Can move stoploss up/down
 x Display rate limiting
 x Support selecting different symbol as cmd line param
 x Velocity tracking
+x Look at tracking buy/sell 'push' indicators
+ x Use trade ws feed
+ x Show average buy/sell velocity over various timescales
+* Log order fills
+* Retry 'system overloaded' errors (or whatever they're called now)
+* Need to use appropriate rounding when creating/modifying orders in other symbols
+ x Get tick size
+ x Use it for rounding
+ * Need to calculate qty different for other symbols: need to use BTC->USD price to calculate qty
+  ?? Need to understand first; numbers aren't adding up
+ * Should use half of available wallet balance, not half of total
 * Support/resistance levels
  * Can set support/resistance level and move up/down
  * When price moves outside level, open a position with a market order
@@ -50,19 +61,8 @@ x Velocity tracking
   * With much more velocity than opposite direction
   * Then after a price pause
  * When velocity slows, close position
-* Log order fills
 * Rewrite BS indicators not to store every single order, and to show a history graph rather than multiple averages
-* Need to use appropriate rounding when creating/modifying orders in other symbols
- x Get tick size
- x Use it for rounding
- * Need to calculate qty different for other symbols: need to use BTC->USD price to calculate qty
-  ?? Need to understand first; numbers aren't adding up
- * Should use half of available wallet balance, not half of total
 * Use ParticipateDoNotInitiate for opening position, and retry if fails?
-* Retry 'system overloaded' errors (or whatever they're called now)
-x Look at tracking buy/sell 'push' indicators
- x Use trade ws feed
- x Show average buy/sell velocity over various timescales
 * Candle graphs
 * Can set 'take profit' order and adjust its price
 * Can half close open position

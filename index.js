@@ -186,8 +186,10 @@ term.on('key', (name, matches, data) => {
   if (canClose() && is('C')) { closeNow() }
   if (canCancel() && is('n')) { cancel() }
   if (canMarketify() && is('m')) { marketify() }
-  if (canMoveStop() && is('u')) { stopUp() }
-  if (canMoveStop() && is('d')) { stopDown() }
+  if (canMoveStop() && is('U')) { stopUp(5) }
+  if (canMoveStop() && is('u')) { stopUp(1) }
+  if (canMoveStop() && is('D')) { stopDown(5) }
+  if (canMoveStop() && is('d')) { stopDown(1) }
 })
 
 // api calls
@@ -312,18 +314,18 @@ const marketify = () => {
   })).then(fetchOrders)
 }
 
-const stopUp = () => {
+const stopUp = (speed) => {
   Promise.all(stopOrders().map(o => {
     status(`Up stop ${o.clOrdID}`)
-    const newStopPx = roundToTickSize(o.stopPx / Math.sqrt(Math.sqrt(stopPxFraction)))
+    const newStopPx = roundToTickSize(o.stopPx / Math.pow(stopPxFraction, speed/20))
     return setStopPx(o.clOrdID, newStopPx)
   })).then(fetchOrders)
 }
 
-const stopDown = () => {
+const stopDown = (speed) => {
   Promise.all(stopOrders().map(o => {
     status(`Down stop ${o.clOrdID}`)
-    const newStopPx = roundToTickSize(o.stopPx * Math.sqrt(Math.sqrt(stopPxFraction)))
+    const newStopPx = roundToTickSize(o.stopPx * Math.pow(stopPxFraction, speed/20))
     return setStopPx(o.clOrdID, newStopPx)
   })).then(fetchOrders)
 }
