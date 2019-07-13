@@ -157,6 +157,7 @@ const reallyDisplay = () => {
     begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
 
+  begin()('\n')
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
     const pnl = (midSpreadPrice - avgEntryPrice) * currentQty

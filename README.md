@@ -46,6 +46,7 @@ x Velocity tracking
 x Look at tracking buy/sell 'push' indicators
  x Use trade ws feed
  x Show average buy/sell velocity over various timescales
+* Allow selecting individual orders and positions and operate only on them
 * Log order fills
 * Retry 'system overloaded' errors (or whatever they're called now)
 * Need to use appropriate rounding when creating/modifying orders in other symbols
