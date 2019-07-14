@@ -145,24 +145,23 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  const candles = data.candles.slice(-(term.width-1))
   const scaleVol = v => 0.01 + v*volumeScale/(candleSize/1000)
   term.vol = (v) => {
     const x = Math.floor(Math.min(scaleVol(Math.abs(v))*255, 255))
     return term(`\x1b[38;2;${v<0?x:0};${v>0?x:0};0m█`)
   }
-  begin(); candles.forEach(c => term.vol(c.buyVolume)); term('\n')
-  begin(); candles.forEach(c => term.vol(-c.sellVolume)); term('\n')
   begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').vol(data.buyVelocity*15).vol(data.buyVelocity*2)
         (' ').vol(-data.sellVelocity*2).vol(-data.sellVelocity*15)(' ').side('Sell', Math.round(data.sellVelocity))('\n')
+  const candles = data.candles.slice(-(term.width-1))
+  begin(); candles.forEach(c => term.vol(c.buyVolume)); term('\n')
+  begin(); candles.forEach(c => term.vol(-c.sellVolume)); term('\n')
 
   begin()('\n')
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
     const pnl = (midSpreadPrice - avgEntryPrice) * currentQty
     begin()('position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
-    term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('\n')
-    term('  pnl ').sign(units(pnl))('\n')
+    term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('  ±').sign(units(pnl))('\n')
   })
 
   begin()('\n')
