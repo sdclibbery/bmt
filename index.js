@@ -153,8 +153,8 @@ const reallyDisplay = () => {
   }
   begin(); candles.forEach(c => term.vol(c.buyVolume)); term('\n')
   begin(); candles.forEach(c => term.vol(-c.sellVolume)); term('\n')
-  begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').vol(data.buyVelocity*15).vol(data.buyVelocity*5)
-        (' ').vol(-data.sellVelocity*5).vol(-data.sellVelocity*15)(' ').side('Sell', Math.round(data.sellVelocity))('\n')
+  begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').vol(data.buyVelocity*15).vol(data.buyVelocity*2)
+        (' ').vol(-data.sellVelocity*2).vol(-data.sellVelocity*15)(' ').side('Sell', Math.round(data.sellVelocity))('\n')
 
   begin()('\n')
   const ps = data.openPositions || []
