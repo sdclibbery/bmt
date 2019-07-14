@@ -153,17 +153,17 @@ const reallyDisplay = () => {
   begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').side('Sell', Math.round(data.sellVelocity))('\n')
 
   begin()('\n')
-  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
-    begin()(`open order ${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
-  })
-
-  begin()('\n')
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
     const pnl = (midSpreadPrice - avgEntryPrice) * currentQty
-    begin()('open position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
+    begin()('position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
     term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('\n')
     term('  pnl ').sign(units(pnl))('\n')
+  })
+
+  begin()('\n')
+  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
+    begin().side(side,`${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
 
   begin()('\n').grey()(data.status)('\n')
