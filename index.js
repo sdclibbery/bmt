@@ -38,7 +38,7 @@ if (options.help || missingButRequiredOptions.length > 0) {
 const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
-const stopPxFraction = 0.95
+const stopPxFraction = 0.98
 let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
 const candleSize = 60*1000
 const volumeScale = 1e-5
