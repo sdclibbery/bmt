@@ -108,7 +108,6 @@ const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositi
 const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0)
 const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol)
 const canMoveStop = () => stopOrders().length > 0
-const canMarketify = () => limitOrders().length > 0
 
 // Display
 
@@ -175,7 +174,6 @@ const reallyDisplay = () => {
   if (canBuySell()) { term.side('Buy', " 'b'uy").side('Sell', " 's'ell").side('Buy', " 'B'uyNow").side('Sell', " 'S'ellNow") }
   if (canClose()) { term.wrap("  ^B'c'lose").wrap("  ^B'C'loseNow") }
   if (canCancel()) { term.wrap("  ^BCa'n'cel") }
-  if (canMarketify()) { term.wrap("  ^M'M'arketify") }
   if (canMoveStop()) { term.wrap("  ^MStop'U'p Stop'D'own") }
 }
 display()
@@ -189,7 +187,6 @@ term.on('key', (name, matches, data) => {
   if (canClose() && is('c')) { close() }
   if (canClose() && is('C')) { closeNow() }
   if (canCancel() && is('n')) { cancel() }
-  if (canMarketify() && is('m')) { marketify() }
   if (canMoveStop() && is('U')) { stopUp(5) }
   if (canMoveStop() && is('u')) { stopUp(1) }
   if (canMoveStop() && is('D')) { stopDown(5) }
@@ -308,14 +305,6 @@ const sellNow = () => {
   market(qty)
     .then(() => stopClose('Buy', price/stopPxFraction))
     .then(fetchOrders)
-}
-
-const marketify = () => {
-  Promise.all(limitOrders().map(o => {
-    status(`Converting to market ${o.clOrdID}`)
-    cancelOrder(o.clOrdID)
-    return market(o.orderQty)
-  })).then(fetchOrders)
 }
 
 const stopUp = (speed) => {
