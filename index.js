@@ -104,10 +104,6 @@ const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
 const limitOrders = () => data.openOrders.filter(o => o.ordType=='Limit' && o.symbol == symbol)
 const stopOrders = () => data.openOrders.filter(o => o.ordType=='Stop' && o.symbol == symbol)
-const canBuySell = () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0)
-const canClose = () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0)
-const canCancel = () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol)
-const canMoveStop = () => stopOrders().length > 0
 
 // Display
 
@@ -120,26 +116,24 @@ const display = () => {
     reallyDisplay()
   }, 150)
 }
+term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
+term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
 const reallyDisplay = () => {
-  term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
-  term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
-  const begin = () => term.styleReset()
-
   term.clear().moveTo(1,1)
 
   if (credentials.testnet) {
-    begin()('<TestNet>\n')
+    term.styleReset()('<TestNet>\n')
   }
 
-  begin()('wallet')(' ').brightBlue(units(walletTotal()))(' ')(walletCurrency())
+  term.styleReset()('wallet')(' ').brightBlue(units(walletTotal()))(' ')(walletCurrency())
   term('\n')
 
   const t = data.lastTrade
-  begin()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
+  term.styleReset()('last ').side(t.side, t.price)(' ')('mark ').magenta(data.markPrice)(' ')(symbol)('\n')
 
   const s = data.spread
   const midSpreadPrice = s ? (s.hi+s.lo)/2 : 0
-  begin()('spread ')
+  term.styleReset()('spread ')
   if (s) {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
@@ -149,49 +143,65 @@ const reallyDisplay = () => {
     const x = Math.floor(Math.min(scaleVol(Math.abs(v))*255, 255))
     return term(`\x1b[38;2;${v<0?x:0};${v>0?x:0};0m█`)
   }
-  begin()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').vol(data.buyVelocity*15).vol(data.buyVelocity*2)
+  term.styleReset()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').vol(data.buyVelocity*15).vol(data.buyVelocity*2)
         (' ').vol(-data.sellVelocity*2).vol(-data.sellVelocity*15)(' ').side('Sell', Math.round(data.sellVelocity))('\n')
   const candles = data.candles.slice(-(term.width-1))
-  begin(); candles.forEach(c => term.vol(c.buyVolume)); term('\n')
-  begin(); candles.forEach(c => term.vol(-c.sellVolume)); term('\n')
+  term.styleReset(); candles.forEach(c => term.vol(c.buyVolume)); term('\n')
+  term.styleReset(); candles.forEach(c => term.vol(-c.sellVolume)); term('\n')
 
-  begin()('\n')
+  term.styleReset()('\n')
   const ps = data.openPositions || []
   ps.forEach(({symbol,currentQty,avgEntryPrice,leverage,liquidationPrice}) => {
     const pnl = (midSpreadPrice - avgEntryPrice) * currentQty
-    begin()('position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
+    term.styleReset()('position ')(symbol)(' ').sign(currentQty)(' x')(leverage)('\n')
     term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('  ±').sign(units(pnl))('\n')
   })
 
-  begin()('\n')
+  term.styleReset()('\n')
   data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
-    begin().side(side,`${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
+    term.styleReset().side(side,`${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
 
-  begin()('\n').grey()(data.status)('\n')
+  term.styleReset()('\n').grey()(data.status)('\n')
 
-  begin()("'Q'uit")
-  if (canBuySell()) { term.side('Buy', " 'b'uy").side('Sell', " 's'ell").side('Buy', " 'B'uyNow").side('Sell', " 'S'ellNow") }
-  if (canClose()) { term.wrap("  ^B'c'lose").wrap("  ^B'C'loseNow") }
-  if (canCancel()) { term.wrap("  ^BCa'n'cel") }
-  if (canMoveStop()) { term.wrap("  ^MStop'U'p Stop'D'own") }
+  term.styleReset()
+  actions.forEach(({active, display}) => active() && display())
 }
 display()
+
 term.on('key', (name, matches, data) => {
-  const is = (c) => name == c
-	if (is('CTRL_C') || is('q')) { terminate() }
-  if (canBuySell() && is('b')) { buy() }
-  if (canBuySell() && is('s')) { sell() }
-  if (canBuySell() && is('B')) { buyNow() }
-  if (canBuySell() && is('S')) { sellNow() }
-  if (canClose() && is('c')) { close() }
-  if (canClose() && is('C')) { closeNow() }
-  if (canCancel() && is('n')) { cancel() }
-  if (canMoveStop() && is('U')) { stopUp(5) }
-  if (canMoveStop() && is('u')) { stopUp(1) }
-  if (canMoveStop() && is('D')) { stopDown(5) }
-  if (canMoveStop() && is('d')) { stopDown(1) }
+  actions.forEach(({active, parse}) => {
+    const action = parse(name)
+    if (active() && action) { action() }
+  })
 })
+const actions = [
+  { // Quit
+    active: () => true,
+    display: () => term("'Q'uit"),
+    parse: key => { return {q:terminate, 'CTRL_C':terminate,}[key] },
+  },
+  { // BuySell - open position
+    active: () => (data.wallet.length>0 && data.spread && data.openPositions && data.openPositions.length==0 && data.openOrders.length==0),
+    display: () => term.side('Buy', " 'b'uy").side('Sell', " 's'ell").side('Buy', " 'B'uyNow").side('Sell', " 'S'ellNow"),
+    parse: key => { return {b:buy, s:sell, B:buyNow, S:sellNow,}[key] },
+  },
+  { // Close position
+    active: () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0),
+    display: () => term.wrap("  ^B'c'lose").wrap("  ^B'C'loseNow"),
+    parse: key => { return {c:close, C:closeNow,}[key] },
+  },
+  { // Cancel orders
+    active: () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol),
+    display: () => term.wrap("  ^BCa'n'cel"),
+    parse: key => { return {n:cancel,}[key] },
+  },
+  { // Move stop up/down
+    active: () => stopOrders().length > 0,
+    display: () => term.wrap("  ^MStop'U'p Stop'D'own"),
+    parse: key => { return {U:()=>stopUp(5), u:()=>stopUp(1), D:()=>stopDown(5), d:()=>stopDown(1),}[key] },
+  },
+]
 
 // api calls
 
