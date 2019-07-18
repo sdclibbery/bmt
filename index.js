@@ -201,7 +201,7 @@ const limit = (qty, price, baseId) => {
   status(`Limit ${side} ${qty} at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol, displayQty: 0,
-      side: side, orderQty: qty, price: price
+      side: side, orderQty: qty, price: price, execInst: 'ParticipateDoNotInitiate'
     }).catch(error('limit'))
 }
 

@@ -46,10 +46,14 @@ x Velocity tracking
 x Look at tracking buy/sell 'push' indicators
  x Use trade ws feed
  x Show average buy/sell velocity over various timescales
+* Use participate don't initiate for limit orders
+* Maybe build risk/reward steps into the open flow to slow things down and enforce process
+* Log order fills (can do by checking order ids against trade stream?)
+* Log position close with pnl
+* Log wallet history events?
+* Retry 'system overloaded' errors (or whatever they're called now)
 * Allow selecting an individual order and operate only on it
 * ? Cancel stop order if no positions are open
-* Log order fills
-* Retry 'system overloaded' errors (or whatever they're called now)
 * Need to use appropriate rounding when creating/modifying orders in other symbols
  x Get tick size
  x Use it for rounding
