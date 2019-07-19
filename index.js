@@ -100,7 +100,8 @@ const data = {
 }
 const roundToTickSize = (x) => Number.parseFloat(x).toFixed(Math.floor(-Math.log10(tickSize)))
 const status = (s) => { log(s); data.status = s; display(); }
-const walletTotal = () => (((data.wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
+const walletTotalCalc = (wallet) => (((wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
+const walletTotal = () => walletTotalCalc(data.wallet)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
 const limitOrders = () => data.openOrders.filter(o => o.ordType=='Limit' && o.symbol == symbol)
 const stopOrders = () => data.openOrders.filter(o => o.ordType=='Stop' && o.symbol == symbol)
@@ -230,7 +231,7 @@ const closePosition = (price, baseId) => {
   status(`Closing at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
-      price: price, execInst: 'Close'
+      price: price, execInst: 'Close,ParticipateDoNotInitiate'
     }).catch(error('closePosition'))
 }
 
@@ -370,9 +371,16 @@ const updateOrders = () => {
 
 const fetchWallet = () => {
   return bitmex.request('GET', '/user/walletSummary', {  })
-    .then(w => { data.wallet = w }).then(display).catch(error('fetchWallet'))
+    .then(w => {
+      const oldTotal = walletTotal()
+      const newTotal = walletTotalCalc(w)
+      if (!!oldTotal && newTotal != oldTotal) {
+        log(`Wallet total change ${oldTotal} -> ${newTotal}`)
+      }
+      data.wallet = w
+    }).then(display).catch(error('fetchWallet'))
 }
-fetchWallet(); setInterval(fetchWallet, 10000)
+fetchWallet(); setInterval(fetchWallet, 8000)
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   if (!res.length) return
@@ -407,7 +415,7 @@ const fetchOrders = () => {
     .then(orders => { data.openOrders = orders })
     .then(display).catch(error('fetchOrders'))
 }
-fetchOrders(); setInterval(fetchOrders, 5000)
+fetchOrders(); setInterval(fetchOrders, 3000)
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   res.forEach(t => {

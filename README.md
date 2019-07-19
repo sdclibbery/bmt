@@ -46,7 +46,8 @@ x Velocity tracking
 x Look at tracking buy/sell 'push' indicators
  x Use trade ws feed
  x Show average buy/sell velocity over various timescales
-* Use participate don't initiate for limit orders
+x refactor actions to allow adding dynamic ones easier
+x Use participate don't initiate for limit orders
 * Maybe build risk/reward steps into the open flow to slow things down and enforce process
 * Log order fills (can do by checking order ids against trade stream?)
 * Log position close with pnl
