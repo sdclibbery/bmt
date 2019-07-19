@@ -208,7 +208,7 @@ const actions = [
 
 const limit = (qty, price, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
-  const id = `${baseId} Limit ${side} ${Date.now()}`
+  const id = `${baseId} Limit ${Date.now()}`
   status(`Limit ${side} ${qty} at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol, displayQty: 0,
@@ -286,7 +286,7 @@ const buy = () => {
   status(`Buying ${symbol}`)
   const price = data.spread.lo
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, 'UpdateMe')
+  limit(qty, price, `UpdateMe Buy`)
     .then(() => stopClose('Sell', price*stopPxFraction))
     .then(fetchOrders)
 }
@@ -295,7 +295,7 @@ const sell = () => {
   status(`Selling ${symbol}`)
   const price = data.spread.hi
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, 'UpdateMe')
+  limit(qty, price, `UpdateMe Sell`)
     .then(() => stopClose('Buy', price/stopPxFraction))
     .then(fetchOrders)
 }
@@ -337,8 +337,9 @@ const stopDown = (speed) => {
 const close = () => {
   status(`Closing ${symbol} position`)
   const qty = -data.openPositions[0].currentQty
-  const price = (qty > 0) ? data.spread.lo : data.spread.hi
-  closePosition(price, 'UpdateMe').then(fetchOrders)
+  const side = (qty > 0) ? 'Buy' : 'Sell'
+  const price = (side == 'Buy') ? data.spread.lo : data.spread.hi
+  closePosition(price, `UpdateMe ${side}`).then(fetchOrders)
 }
 
 const closeNow = () => {
@@ -359,7 +360,7 @@ const updateOrders = () => {
   data.openOrders
     .filter(({clOrdID}) => clOrdID.startsWith('UpdateMe'))
     .forEach(o => {
-      const newPrice = (o.orderQty > 0) ? data.spread.lo : data.spread.hi
+      const newPrice = o.clOrdID.includes('Buy') ? data.spread.lo : data.spread.hi
       if (o.price != newPrice) {
         setOrderPrice(o.clOrdID, newPrice)
         o.price = newPrice
@@ -380,7 +381,7 @@ const fetchWallet = () => {
       data.wallet = w
     }).then(display).catch(error('fetchWallet'))
 }
-fetchWallet(); setInterval(fetchWallet, 8000)
+fetchWallet(); setInterval(fetchWallet, 10000)
 
 bitmexWs.addStream(symbol, 'trade', function (res, symbol, tableName) {
   if (!res.length) return
