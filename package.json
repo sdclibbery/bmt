@@ -21,6 +21,6 @@
     "bitmex-request": "0.0.2",
     "command-line-args": "^5.1.1",
     "hsl-to-hex": "^1.0.0",
-    "terminal-kit": "^1.28.1"
+    "terminal-kit": "^1.28.18"
   }
 }
