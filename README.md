@@ -55,7 +55,7 @@ x Selected order by index
  x Actions only operate on selected
 x When limit buy or sell, create tight limit stop
 x Move order needs to move BOTH price and stopPx if both are present
-* When limit buy or sell, create 2x or 3x limit take profit
+x When limit buy or sell, create 2x or 3x limit take profit
 * Maybe build risk/reward steps into the open flow to slow things down and enforce process
 * Log order fills (can do by checking order ids against trade stream?)
 * Log position close with pnl

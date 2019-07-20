@@ -272,7 +272,7 @@ const stopClose = (side, stopPx) => {
     }).catch(error('stopClose'))
 }
 
-const stopLimitClose = (side, price, stopPx, baseId) => {
+const stopLimitClose = (side, stopPx, price, baseId) => {
   const id = `${baseId} ${Date.now()}`
   status(`StopLimitClose ${side} at ${price} for ${stopPx}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
@@ -281,7 +281,7 @@ const stopLimitClose = (side, price, stopPx, baseId) => {
     }).catch(error('stopLimitClose'))
 }
 
-const limitCloseIfTouched = (side, price, stopPx, baseId) => {
+const limitCloseIfTouched = (side, stopPx, price, baseId) => {
   const id = `${baseId} ${Date.now()}`
   status(`limitCloseIfTouched ${side} at ${price} for ${stopPx}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
