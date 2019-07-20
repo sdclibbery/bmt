@@ -48,6 +48,12 @@ x Look at tracking buy/sell 'push' indicators
  x Show average buy/sell velocity over various timescales
 x refactor actions to allow adding dynamic ones easier
 x Use participate don't initiate for limit orders
+* Selected order by index
+ x Highlight
+ x Change selected
+ x Limit to range on display
+ * Actions only operate on selected
+* When limit buy or sell, create tight limit stop and 2x or 3x limit take profit
 * Maybe build risk/reward steps into the open flow to slow things down and enforce process
 * Log order fills (can do by checking order ids against trade stream?)
 * Log position close with pnl

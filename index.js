@@ -95,6 +95,7 @@ const data = {
   wallet: [],
   spread: undefined,
   openOrders: [],
+  selectedOrderIdx: 0,
   openPositions: undefined,
   status: 'Init',
 }
@@ -119,6 +120,11 @@ const display = () => {
 }
 term.side = (side,t) => side=='Sell'?term.brightRed(t):term.brightGreen(t)
 term.sign = (x) => x<0?term.brightRed(x):term.brightGreen(x)
+const scaleVol = v => 0.01 + v*volumeScale/(candleSize/1000)
+term.vol = (v) => {
+  const x = Math.floor(Math.min(scaleVol(Math.abs(v))*255, 255))
+  return term(`\x1b[38;2;${v<0?x:0};${v>0?x:0};0m█`)
+}
 const reallyDisplay = () => {
   term.clear().moveTo(1,1)
 
@@ -139,11 +145,6 @@ const reallyDisplay = () => {
     term.brightGreen(s.lo)(' - ').brightRed(s.hi)(' ')(symbol)('\n')
   }
 
-  const scaleVol = v => 0.01 + v*volumeScale/(candleSize/1000)
-  term.vol = (v) => {
-    const x = Math.floor(Math.min(scaleVol(Math.abs(v))*255, 255))
-    return term(`\x1b[38;2;${v<0?x:0};${v>0?x:0};0m█`)
-  }
   term.styleReset()('velocity ').side('Buy', Math.round(data.buyVelocity))(' ').vol(data.buyVelocity*15).vol(data.buyVelocity*2)
         (' ').vol(-data.sellVelocity*2).vol(-data.sellVelocity*15)(' ').side('Sell', Math.round(data.sellVelocity))('\n')
   const candles = data.candles.slice(-(term.width-1))
@@ -158,9 +159,12 @@ const reallyDisplay = () => {
     term('  entry ').yellow(avgEntryPrice)(' liq ').brightRed(liquidationPrice)('  ±').sign(units(pnl))('\n')
   })
 
+  data.selectedOrderIdx = Math.max(Math.min(data.selectedOrderIdx, data.openOrders.length-1), 0)
   term.styleReset()('\n')
-  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}) => {
-    term.styleReset().side(side,`${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
+  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}, idx) => {
+    term.styleReset()
+    if (idx == data.selectedOrderIdx) { term.bgColorGrayscale(40) }
+    term.side(side,`${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
 
   term.styleReset()('\n').grey()(data.status)('\n')
@@ -173,7 +177,10 @@ display()
 term.on('key', (name, matches, data) => {
   actions.forEach(({active, parse}) => {
     const action = parse(name)
-    if (active() && action) { action() }
+    if (active() && action) {
+      action()
+      display()
+    }
   })
 })
 const actions = [
@@ -201,6 +208,16 @@ const actions = [
     active: () => stopOrders().length > 0,
     display: () => term.wrap("  ^MStop'U'p Stop'D'own"),
     parse: key => { return {U:()=>stopUp(5), u:()=>stopUp(1), D:()=>stopDown(5), d:()=>stopDown(1),}[key] },
+  },
+  { // Selected order up
+    active: () => data.selectedOrderIdx > 0,
+    display: () => term.bgColorGrayscale(40).wrap("  ^W↑"),
+    parse: key => { return {'UP':() => data.selectedOrderIdx-=1,}[key] },
+  },
+  { // Selected order down
+    active: () => data.selectedOrderIdx < data.openOrders.length-1,
+    display: () => term.bgColorGrayscale(40).wrap("  ^W↓"),
+    parse: key => { return {'DOWN':() => data.selectedOrderIdx+=1,}[key] },
   },
 ]
 
