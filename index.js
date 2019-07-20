@@ -168,7 +168,7 @@ const reallyDisplay = () => {
     if (idx == data.selectedOrderIdx) { term.bgColorGrayscale(50) }
     const bits = clOrdID.split(' ')
     const id = bits[0]=='UpdateMe' ? bits[1] : bits[0]
-    term.side(side,`${id} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
+    term.side(side,`${id} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(stopPx)(' ')(price)('\n')
   })
 
   term.styleReset()('\n').grey()(data.status)('\n')
@@ -367,7 +367,7 @@ const stopClose = (side, stopPx) => {
 
 const stopLimitClose = (side, stopPx, price, baseId) => {
   const id = `${baseId} ${Date.now()}`
-  status(`StopLimitClose ${side} at ${price} for ${stopPx}\n  '${id}'`)
+  status(`StopLimitClose ${side} at ${stopPx} for ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'StopLimit', clOrdID: id, symbol: symbol,
       side: side, price: price, stopPx: stopPx, execInst: 'Close,LastPrice'
@@ -376,7 +376,7 @@ const stopLimitClose = (side, stopPx, price, baseId) => {
 
 const limitCloseIfTouched = (side, stopPx, price, baseId) => {
   const id = `${baseId} ${Date.now()}`
-  status(`limitCloseIfTouched ${side} at ${price} for ${stopPx}\n  '${id}'`)
+  status(`limitCloseIfTouched ${side} at ${stopPx} for ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'LimitIfTouched', clOrdID: id, symbol: symbol,
       side: side, price: price, stopPx: stopPx, execInst: 'Close,LastPrice'
