@@ -39,6 +39,7 @@ const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
 const stopPxFraction = 0.98
+const riskFraction = 0.997
 const moveFraction = 0.98
 const candleSize = 60*1000
 const volumeScale = 1e-5
@@ -209,12 +210,12 @@ const actions = [
     display: () => term.wrap("  ^MOrder'Uu'p Order'Dd'own"),
     parse: key => { return {U:()=>orderUp(5), u:()=>orderUp(1), D:()=>orderDown(5), d:()=>orderDown(1),}[key] },
   },
-  { // Selected order up
+  { // Order selection up
     active: () => data.selectedOrderIdx > 0,
     display: () => term.bgColorGrayscale(40).wrap("  ^W↑"),
     parse: key => { return {'UP':() => data.selectedOrderIdx-=1,}[key] },
   },
-  { // Selected order down
+  { // Order selection down
     active: () => data.selectedOrderIdx < data.openOrders.length-1,
     display: () => term.bgColorGrayscale(40).wrap("  ^W↓"),
     parse: key => { return {'DOWN':() => data.selectedOrderIdx+=1,}[key] },
@@ -262,7 +263,6 @@ const closePositionNow = (price, now) => {
 }
 
 const stopClose = (side, stopPx) => {
-  stopPx = Math.round(stopPx)
   const id = `StopClose ${Date.now()}`
   status(`StopClose ${side} at ${stopPx}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
@@ -271,9 +271,20 @@ const stopClose = (side, stopPx) => {
     }).catch(error('stopClose'))
 }
 
-const setOrderPrice = (clOrdID, newPrice) => {
-  status(`Updating\n  '${clOrdID}' to ${newPrice}`)
-  return bitmex.request('PUT', '/order', { origClOrdID: clOrdID, price: newPrice }).catch(handleOrderUpdateError('setOrderPrice'))
+const stopLimitClose = (side, price, stopPx, baseId) => {
+  const id = `${baseId} ${Date.now()}`
+  status(`StopLimitClose ${side} at ${price} for ${stopPx}\n  '${id}'`)
+  return bitmex.request('POST', '/order', {
+      ordType: 'StopLimit', clOrdID: id, symbol: symbol,
+      side: side, price: price, stopPx: stopPx, execInst: 'Close,LastPrice'
+    }).catch(error('stopLimitClose'))
+}
+
+const setOrderPrice = (clOrdID, newPrice, newStopPx) => {
+  status(`Updating\n  '${clOrdID}' to ${newPrice||''} ${newStopPx||''}`)
+  return bitmex
+    .request('PUT', '/order', { origClOrdID: clOrdID , price: newPrice, stopPx: newStopPx })
+    .catch(handleOrderUpdateError('setOrderPrice'))
 }
 
 const setStopPx = (clOrdID, newStopPx) => {
@@ -304,7 +315,11 @@ const buy = () => {
   const price = data.spread.lo
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, `UpdateMe Buy`)
-    .then(() => stopClose('Sell', price*stopPxFraction))
+    .then(() => {
+//      limitCloseIfTouched(roundToTickSize(price/Math.pow(riskFraction, 3)), 'Reward')
+      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.2)), 'Risk')
+      stopClose('Sell', roundToTickSize(price*stopPxFraction))
+    })
     .then(fetchOrders)
 }
 
@@ -313,7 +328,11 @@ const sell = () => {
   const price = data.spread.hi
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, `UpdateMe Sell`)
-    .then(() => stopClose('Buy', price/stopPxFraction))
+    .then(() => {
+//      limitCloseIfTouched(roundToTickSize(price*Math.pow(riskFraction, 3)), 'Reward')
+      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.2)), 'Risk')
+      stopClose('Buy', roundToTickSize(price/stopPxFraction))
+    })
     .then(fetchOrders)
 }
 
@@ -322,7 +341,7 @@ const buyNow = () => {
   const price = data.spread.lo
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   market(qty)
-    .then(() => stopClose('Sell', price*stopPxFraction))
+    .then(() => stopClose('Sell', roundToTickSize(price*stopPxFraction)))
     .then(fetchOrders)
 }
 
@@ -331,32 +350,24 @@ const sellNow = () => {
   const price = data.spread.hi
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   market(qty)
-    .then(() => stopClose('Buy', price/stopPxFraction))
+    .then(() => stopClose('Buy', roundToTickSize(price/stopPxFraction)))
     .then(fetchOrders)
 }
 
 const orderUp = (speed) => {
   const o = selectedOrder()
   status(`Up order ${o.clOrdID}`)
-  if (o.stopPx) {
-    const newStopPx = roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
-    return setStopPx(o.clOrdID, newStopPx).then(fetchOrders)
-  } else {
-    const newPrice = roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
-    return setOrderPrice(o.clOrdID, newPrice).then(fetchOrders)
-  }
+  const newPrice = o.price && roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
+  const newStopPx = o.stopPx && roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
+  return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
 }
 
 const orderDown = (speed) => {
   const o = selectedOrder()
   status(`Down order ${o.clOrdID}`)
-  if (o.stopPx) {
-    const newStopPx = roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
-    return setStopPx(o.clOrdID, newStopPx).then(fetchOrders)
-  } else {
-    const newPrice = roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
-    return setOrderPrice(o.clOrdID, newPrice).then(fetchOrders)
-  }
+  const newPrice = o.price && roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
+  const newStopPx = o.stopPx && roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
+  return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
 }
 
 const close = () => {
