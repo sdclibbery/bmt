@@ -39,10 +39,11 @@ const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
 const stopPxFraction = 0.98
-let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
+const moveFraction = 0.98
 const candleSize = 60*1000
 const volumeScale = 1e-5
 const velocityRelaxation = 0.9
+let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
 
 // terminal setup and logging
 
@@ -104,8 +105,7 @@ const status = (s) => { log(s); data.status = s; display(); }
 const walletTotalCalc = (wallet) => (((wallet.filter(({transactType}) => transactType == 'Total')[0]) || {}).walletBalance)
 const walletTotal = () => walletTotalCalc(data.wallet)
 const walletCurrency = () => ((data.wallet[0] || {}).currency)
-const limitOrders = () => data.openOrders.filter(o => o.ordType=='Limit' && o.symbol == symbol)
-const stopOrders = () => data.openOrders.filter(o => o.ordType=='Stop' && o.symbol == symbol)
+const selectedOrder = () => data.openOrders[data.selectedOrderIdx]
 
 // Display
 
@@ -195,19 +195,19 @@ const actions = [
     parse: key => { return {b:buy, s:sell, B:buyNow, S:sellNow,}[key] },
   },
   { // Close position
-    active: () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol && limitOrders().length==0),
+    active: () => (data.spread && data.openPositions && data.openPositions.length==1 && data.openPositions[0].symbol == symbol),
     display: () => term.wrap("  ^B'c'lose").wrap("  ^B'C'loseNow"),
     parse: key => { return {c:close, C:closeNow,}[key] },
   },
-  { // Cancel orders
-    active: () => (data.openOrders && data.openOrders.length>0 && data.openOrders[0].symbol == symbol),
+  { // Cancel order
+    active: () => !!selectedOrder(),
     display: () => term.wrap("  ^BCa'n'cel"),
     parse: key => { return {n:cancel,}[key] },
   },
-  { // Move stop up/down
-    active: () => stopOrders().length > 0,
-    display: () => term.wrap("  ^MStop'U'p Stop'D'own"),
-    parse: key => { return {U:()=>stopUp(5), u:()=>stopUp(1), D:()=>stopDown(5), d:()=>stopDown(1),}[key] },
+  { // Move order up/down
+    active: () => !!selectedOrder(),
+    display: () => term.wrap("  ^MOrder'Uu'p Order'Dd'own"),
+    parse: key => { return {U:()=>orderUp(5), u:()=>orderUp(1), D:()=>orderDown(5), d:()=>orderDown(1),}[key] },
   },
   { // Selected order up
     active: () => data.selectedOrderIdx > 0,
@@ -335,20 +335,28 @@ const sellNow = () => {
     .then(fetchOrders)
 }
 
-const stopUp = (speed) => {
-  Promise.all(stopOrders().map(o => {
-    status(`Up stop ${o.clOrdID}`)
-    const newStopPx = roundToTickSize(o.stopPx / Math.pow(stopPxFraction, speed/20))
-    return setStopPx(o.clOrdID, newStopPx)
-  })).then(fetchOrders)
+const orderUp = (speed) => {
+  const o = selectedOrder()
+  status(`Up order ${o.clOrdID}`)
+  if (o.stopPx) {
+    const newStopPx = roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
+    return setStopPx(o.clOrdID, newStopPx).then(fetchOrders)
+  } else {
+    const newPrice = roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
+    return setOrderPrice(o.clOrdID, newPrice).then(fetchOrders)
+  }
 }
 
-const stopDown = (speed) => {
-  Promise.all(stopOrders().map(o => {
-    status(`Down stop ${o.clOrdID}`)
-    const newStopPx = roundToTickSize(o.stopPx * Math.pow(stopPxFraction, speed/20))
-    return setStopPx(o.clOrdID, newStopPx)
-  })).then(fetchOrders)
+const orderDown = (speed) => {
+  const o = selectedOrder()
+  status(`Down order ${o.clOrdID}`)
+  if (o.stopPx) {
+    const newStopPx = roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
+    return setStopPx(o.clOrdID, newStopPx).then(fetchOrders)
+  } else {
+    const newPrice = roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
+    return setOrderPrice(o.clOrdID, newPrice).then(fetchOrders)
+  }
 }
 
 const close = () => {
@@ -367,10 +375,8 @@ const closeNow = () => {
 }
 
 const cancel = () => {
-  status(`Cancelling orders`)
-  Promise.all(data.openOrders.map(({clOrdID}) => {
-    return cancelOrder(clOrdID)
-  })).then(fetchOrders)
+  status(`Cancelling order ${selectedOrder().clOrdID}`)
+  return cancelOrder(selectedOrder().clOrdID).then(fetchOrders)
 }
 
 const updateOrders = () => {
