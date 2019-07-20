@@ -38,7 +38,7 @@ if (options.help || missingButRequiredOptions.length > 0) {
 const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
-const stopPxFraction = 0.98
+const stopPxFraction = 0.99
 const riskFraction = 0.997
 const rewardFraction = 0.992
 const moveFraction = 0.98
@@ -234,8 +234,8 @@ const buy = () => {
   limit(qty, price, `UpdateMe Open`)
     .then(() => {
       stopClose('Sell', roundToTickSize(price*stopPxFraction))
-      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.1)), 'Risk')
-      limitCloseIfTouched('Sell', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/Math.pow(rewardFraction, 1.1)), 'Reward')
+      stopLimitClose('Sell', roundToTickSize(price*riskFraction), roundToTickSize(price*riskFraction)+tickSize*5, 'Risk')
+      limitCloseIfTouched('Sell', roundToTickSize(price/rewardFraction), roundToTickSize(price/rewardFraction)+tickSize*20, 'Reward')
     })
     .then(fetchOrders)
 }
@@ -247,8 +247,8 @@ const sell = () => {
   limit(qty, price, `UpdateMe Open`)
     .then(() => {
       stopClose('Buy', roundToTickSize(price/stopPxFraction))
-      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.1)), 'Risk')
-      limitCloseIfTouched('Buy', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*Math.pow(rewardFraction, 1.1)), 'Reward')
+      stopLimitClose('Buy', roundToTickSize(price/riskFraction), roundToTickSize(price/riskFraction)-tickSize*5, 'Risk')
+      limitCloseIfTouched('Buy', roundToTickSize(price*rewardFraction), roundToTickSize(price*rewardFraction)-tickSize*20, 'Reward')
     })
     .then(fetchOrders)
 }
@@ -384,7 +384,7 @@ const limitCloseIfTouched = (side, stopPx, price, baseId) => {
 }
 
 const setOrderPrice = (clOrdID, newPrice, newStopPx) => {
-  status(`Updating\n  '${clOrdID}' to ${newPrice||''} ${newStopPx||''}`)
+  status(`Updating\n  '${clOrdID}' ${newStopPx||''} to ${newPrice||''}`)
   return bitmex
     .request('PUT', '/order', { origClOrdID: clOrdID , price: newPrice, stopPx: newStopPx })
     .catch(handleOrderUpdateError('setOrderPrice'))
