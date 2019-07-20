@@ -163,10 +163,12 @@ const reallyDisplay = () => {
 
   data.selectedOrderIdx = Math.max(Math.min(data.selectedOrderIdx, data.openOrders.length-1), 0)
   term.styleReset()('\n')
-  data.openOrders.forEach(({side,ordType,price,size,stopPx,leavesQty,symbol}, idx) => {
+  data.openOrders.forEach(({clOrdID,side,ordType,price,size,stopPx,leavesQty,symbol}, idx) => {
     term.styleReset()
-    if (idx == data.selectedOrderIdx) { term.bgColorGrayscale(40) }
-    term.side(side,`${ordType} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
+    if (idx == data.selectedOrderIdx) { term.bgColorGrayscale(50) }
+    const bits = clOrdID.split(' ')
+    const id = bits[0]=='UpdateMe' ? bits[1] : bits[0]
+    term.side(side,`${id} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(price)(' ')(stopPx)('\n')
   })
 
   term.styleReset()('\n').grey()(data.status)('\n')
@@ -223,6 +225,97 @@ const actions = [
   },
 ]
 
+// Actions
+
+const buy = () => {
+  status(`Buying ${symbol}`)
+  const price = data.spread.lo
+  const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
+  limit(qty, price, `UpdateMe Open`)
+    .then(() => {
+      stopClose('Sell', roundToTickSize(price*stopPxFraction))
+      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.1)), 'Risk')
+      limitCloseIfTouched('Sell', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/Math.pow(rewardFraction, 1.1)), 'Reward')
+    })
+    .then(fetchOrders)
+}
+
+const sell = () => {
+  status(`Selling ${symbol}`)
+  const price = data.spread.hi
+  const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
+  limit(qty, price, `UpdateMe Open`)
+    .then(() => {
+      stopClose('Buy', roundToTickSize(price/stopPxFraction))
+      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.1)), 'Risk')
+      limitCloseIfTouched('Buy', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*Math.pow(rewardFraction, 1.1)), 'Reward')
+    })
+    .then(fetchOrders)
+}
+
+const buyNow = () => {
+  status(`Buying ${symbol} now`)
+  const price = data.spread.lo
+  const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
+  market(qty)
+    .then(() => stopClose('Sell', roundToTickSize(price*stopPxFraction)))
+    .then(fetchOrders)
+}
+
+const sellNow = () => {
+  status(`Selling ${symbol} now`)
+  const price = data.spread.hi
+  const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
+  market(qty)
+    .then(() => stopClose('Buy', roundToTickSize(price/stopPxFraction)))
+    .then(fetchOrders)
+}
+
+const orderUp = (speed) => {
+  const o = selectedOrder()
+  const newPrice = o.price && roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
+  const newStopPx = o.stopPx && roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
+  return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
+}
+
+const orderDown = (speed) => {
+  const o = selectedOrder()
+  const newPrice = o.price && roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
+  const newStopPx = o.stopPx && roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
+  return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
+}
+
+const close = () => {
+  status(`Closing ${symbol} position`)
+  const qty = -data.openPositions[0].currentQty
+  const side = (qty > 0) ? 'Buy' : 'Sell'
+  const price = (side == 'Buy') ? data.spread.lo : data.spread.hi
+  closePosition(price, `UpdateMe Close ${side}`).then(fetchOrders)
+}
+
+const closeNow = () => {
+  status(`Closing ${symbol} position now`)
+  const qty = -data.openPositions[0].currentQty
+  const price = (qty > 0) ? data.spread.lo : data.spread.hi
+  closePositionNow(price).then(fetchOrders)
+}
+
+const cancel = () => {
+  return cancelOrder(selectedOrder().clOrdID).then(fetchOrders)
+}
+
+const updateOrders = () => {
+  data.openOrders
+    .filter(({clOrdID}) => clOrdID.startsWith('UpdateMe'))
+    .forEach(o => {
+      const newPrice = o.clOrdID.includes('Buy') ? data.spread.lo : data.spread.hi
+      if (o.price != newPrice) {
+        setOrderPrice(o.clOrdID, newPrice)
+        o.price = newPrice
+      }
+    })
+}
+
 // api calls
 
 const limit = (qty, price, baseId) => {
@@ -246,7 +339,7 @@ const market = (qty) => {
 }
 
 const closePosition = (price, baseId) => {
-  const id = `${baseId} Close ${Date.now()}`
+  const id = `${baseId} ${Date.now()}`
   status(`Closing at ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
@@ -316,97 +409,6 @@ const cancelOrder = (clOrdID) => {
   status(`Cancelling '${clOrdID}'`)
   data.openOrders = data.openOrders.filter(o => o.clOrdID != clOrdID)
   return bitmex.request('DELETE', '/order', { clOrdID: clOrdID }).catch(error('cancelOrder'))
-}
-
-// Actions
-
-const buy = () => {
-  status(`Buying ${symbol}`)
-  const price = data.spread.lo
-  const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, `UpdateMe Buy`)
-    .then(() => {
-      stopClose('Sell', roundToTickSize(price*stopPxFraction))
-      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.1)), 'Risk')
-      limitCloseIfTouched('Sell', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/Math.pow(rewardFraction, 1.1)), 'Reward')
-    })
-    .then(fetchOrders)
-}
-
-const sell = () => {
-  status(`Selling ${symbol}`)
-  const price = data.spread.hi
-  const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, `UpdateMe Sell`)
-    .then(() => {
-      stopClose('Buy', roundToTickSize(price/stopPxFraction))
-      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.1)), 'Risk')
-      limitCloseIfTouched('Buy', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*Math.pow(rewardFraction, 1.1)), 'Reward')
-    })
-    .then(fetchOrders)
-}
-
-const buyNow = () => {
-  status(`Buying ${symbol} now`)
-  const price = data.spread.lo
-  const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  market(qty)
-    .then(() => stopClose('Sell', roundToTickSize(price*stopPxFraction)))
-    .then(fetchOrders)
-}
-
-const sellNow = () => {
-  status(`Selling ${symbol} now`)
-  const price = data.spread.hi
-  const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  market(qty)
-    .then(() => stopClose('Buy', roundToTickSize(price/stopPxFraction)))
-    .then(fetchOrders)
-}
-
-const orderUp = (speed) => {
-  const o = selectedOrder()
-  const newPrice = o.price && roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
-  const newStopPx = o.stopPx && roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
-  return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
-}
-
-const orderDown = (speed) => {
-  const o = selectedOrder()
-  const newPrice = o.price && roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
-  const newStopPx = o.stopPx && roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
-  return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
-}
-
-const close = () => {
-  status(`Closing ${symbol} position`)
-  const qty = -data.openPositions[0].currentQty
-  const side = (qty > 0) ? 'Buy' : 'Sell'
-  const price = (side == 'Buy') ? data.spread.lo : data.spread.hi
-  closePosition(price, `UpdateMe ${side}`).then(fetchOrders)
-}
-
-const closeNow = () => {
-  status(`Closing ${symbol} position now`)
-  const qty = -data.openPositions[0].currentQty
-  const price = (qty > 0) ? data.spread.lo : data.spread.hi
-  closePositionNow(price).then(fetchOrders)
-}
-
-const cancel = () => {
-  return cancelOrder(selectedOrder().clOrdID).then(fetchOrders)
-}
-
-const updateOrders = () => {
-  data.openOrders
-    .filter(({clOrdID}) => clOrdID.startsWith('UpdateMe'))
-    .forEach(o => {
-      const newPrice = o.clOrdID.includes('Buy') ? data.spread.lo : data.spread.hi
-      if (o.price != newPrice) {
-        setOrderPrice(o.clOrdID, newPrice)
-        o.price = newPrice
-      }
-    })
 }
 
 // Data fetch
