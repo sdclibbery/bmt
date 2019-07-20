@@ -40,6 +40,7 @@ const leverage = 25
 const openWalletFraction = 0.505
 const stopPxFraction = 0.98
 const riskFraction = 0.997
+const rewardFraction = 0.992
 const moveFraction = 0.98
 const candleSize = 60*1000
 const volumeScale = 1e-5
@@ -267,7 +268,7 @@ const stopClose = (side, stopPx) => {
   status(`StopClose ${side} at ${stopPx}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Stop', clOrdID: id, symbol: symbol,
-      side: side, stopPx: stopPx, execInst: 'Close'
+      side: side, stopPx: stopPx, execInst: 'Close,LastPrice'
     }).catch(error('stopClose'))
 }
 
@@ -278,6 +279,15 @@ const stopLimitClose = (side, price, stopPx, baseId) => {
       ordType: 'StopLimit', clOrdID: id, symbol: symbol,
       side: side, price: price, stopPx: stopPx, execInst: 'Close,LastPrice'
     }).catch(error('stopLimitClose'))
+}
+
+const limitCloseIfTouched = (side, price, stopPx, baseId) => {
+  const id = `${baseId} ${Date.now()}`
+  status(`limitCloseIfTouched ${side} at ${price} for ${stopPx}\n  '${id}'`)
+  return bitmex.request('POST', '/order', {
+      ordType: 'LimitIfTouched', clOrdID: id, symbol: symbol,
+      side: side, price: price, stopPx: stopPx, execInst: 'Close,LastPrice'
+    }).catch(error('limitCloseIfTouched'))
 }
 
 const setOrderPrice = (clOrdID, newPrice, newStopPx) => {
@@ -316,9 +326,9 @@ const buy = () => {
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, `UpdateMe Buy`)
     .then(() => {
-//      limitCloseIfTouched(roundToTickSize(price/Math.pow(riskFraction, 3)), 'Reward')
-      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.2)), 'Risk')
       stopClose('Sell', roundToTickSize(price*stopPxFraction))
+      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.2)), 'Risk')
+      limitCloseIfTouched('Sell', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/Math.pow(rewardFraction, 1.3)), 'Reward')
     })
     .then(fetchOrders)
 }
@@ -329,9 +339,9 @@ const sell = () => {
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, `UpdateMe Sell`)
     .then(() => {
-//      limitCloseIfTouched(roundToTickSize(price*Math.pow(riskFraction, 3)), 'Reward')
-      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.2)), 'Risk')
       stopClose('Buy', roundToTickSize(price/stopPxFraction))
+      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.2)), 'Risk')
+      limitCloseIfTouched('Buy', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*Math.pow(rewardFraction, 1.3)), 'Reward')
     })
     .then(fetchOrders)
 }
@@ -356,7 +366,6 @@ const sellNow = () => {
 
 const orderUp = (speed) => {
   const o = selectedOrder()
-  status(`Up order ${o.clOrdID}`)
   const newPrice = o.price && roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
   const newStopPx = o.stopPx && roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
   return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
@@ -364,7 +373,6 @@ const orderUp = (speed) => {
 
 const orderDown = (speed) => {
   const o = selectedOrder()
-  status(`Down order ${o.clOrdID}`)
   const newPrice = o.price && roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
   const newStopPx = o.stopPx && roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
   return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
@@ -379,14 +387,13 @@ const close = () => {
 }
 
 const closeNow = () => {
-  status(`Closing ${symbol} position`)
+  status(`Closing ${symbol} position now`)
   const qty = -data.openPositions[0].currentQty
   const price = (qty > 0) ? data.spread.lo : data.spread.hi
   closePositionNow(price).then(fetchOrders)
 }
 
 const cancel = () => {
-  status(`Cancelling order ${selectedOrder().clOrdID}`)
   return cancelOrder(selectedOrder().clOrdID).then(fetchOrders)
 }
 
