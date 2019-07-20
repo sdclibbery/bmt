@@ -38,7 +38,7 @@ if (options.help || missingButRequiredOptions.length > 0) {
 const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
-const stopPxFraction = 0.99
+const stopPxFraction = 0.992
 const riskFraction = 0.997
 const rewardFraction = 0.992
 const moveFraction = 0.98
