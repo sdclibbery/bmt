@@ -20,7 +20,7 @@ Logger.prototype.format = (level, values) => {
       content += ' ' + util.inspect(v, false, null)
     }
   })
-  return [level, ' [', new Date(), '] ', content].join('')
+  return [level, ' [', (new Date()).toJSON(), '] ', content].join('')
 }
 
 Logger.prototype.debug = function (...args) { this.write(this.format('debug', args)) }
