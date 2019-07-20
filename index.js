@@ -327,8 +327,8 @@ const buy = () => {
   limit(qty, price, `UpdateMe Buy`)
     .then(() => {
       stopClose('Sell', roundToTickSize(price*stopPxFraction))
-      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.2)), 'Risk')
-      limitCloseIfTouched('Sell', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/Math.pow(rewardFraction, 1.3)), 'Reward')
+      stopLimitClose('Sell', roundToTickSize(price*Math.pow(riskFraction, 0.8)), roundToTickSize(price*Math.pow(riskFraction, 1.1)), 'Risk')
+      limitCloseIfTouched('Sell', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/Math.pow(rewardFraction, 1.1)), 'Reward')
     })
     .then(fetchOrders)
 }
@@ -340,8 +340,8 @@ const sell = () => {
   limit(qty, price, `UpdateMe Sell`)
     .then(() => {
       stopClose('Buy', roundToTickSize(price/stopPxFraction))
-      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.2)), 'Risk')
-      limitCloseIfTouched('Buy', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*Math.pow(rewardFraction, 1.3)), 'Reward')
+      stopLimitClose('Buy', roundToTickSize(price/Math.pow(riskFraction, 0.8)), roundToTickSize(price/Math.pow(riskFraction, 1.1)), 'Risk')
+      limitCloseIfTouched('Buy', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*Math.pow(rewardFraction, 1.1)), 'Reward')
     })
     .then(fetchOrders)
 }
