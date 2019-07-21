@@ -38,9 +38,9 @@ if (options.help || missingButRequiredOptions.length > 0) {
 const symbol = options.symbol
 const leverage = 25
 const openWalletFraction = 0.505
-const stopPxFraction = 0.992
-const riskFraction = 0.997
-const rewardFraction = 0.992
+const stopPxFraction = 0.995
+const riskFraction = 0.9975
+const rewardFraction = 1.02
 const moveFraction = 0.98
 const candleSize = 60*1000
 const volumeScale = 1e-5
@@ -163,12 +163,12 @@ const reallyDisplay = () => {
 
   data.selectedOrderIdx = Math.max(Math.min(data.selectedOrderIdx, data.openOrders.length-1), 0)
   term.styleReset()('\n')
-  data.openOrders.forEach(({clOrdID,side,ordType,price,size,stopPx,leavesQty,symbol}, idx) => {
+  data.openOrders.forEach(({clOrdID,side,ordType,price,size,stopPx,leavesQty,symbol, triggered}, idx) => {
     term.styleReset()
     if (idx == data.selectedOrderIdx) { term.bgColorGrayscale(50) }
     const bits = clOrdID.split(' ')
     const id = bits[0]=='UpdateMe' ? bits[1] : bits[0]
-    term.side(side,`${id} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(stopPx)(' ')(price)('\n')
+    term.side(side,`${id} `).side(side,side)(' ').side(side,leavesQty)(' ')(symbol)(' @ ')(stopPx)(' ')(price)(`${stopPx?(triggered?' o_o':' Zz'):' '}`)('\n')
   })
 
   term.styleReset()('\n').grey()(data.status)('\n')
@@ -231,11 +231,11 @@ const buy = () => {
   status(`Buying ${symbol}`)
   const price = data.spread.lo
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, `UpdateMe Open`)
+  limit(qty, price, `UpdateMe Open Buy`)
     .then(() => {
       stopClose('Sell', roundToTickSize(price*stopPxFraction))
-      stopLimitClose('Sell', roundToTickSize(price*riskFraction), roundToTickSize(price*riskFraction)+tickSize*5, 'Risk')
-      limitCloseIfTouched('Sell', roundToTickSize(price/rewardFraction), roundToTickSize(price/rewardFraction)+tickSize*20, 'Reward')
+      stopLimitClose('Sell', roundToTickSize(price*riskFraction), roundToTickSize(price*riskFraction)+tickSize*5, 'UpdateMe Risk Sell')
+      limitCloseIfTouched('Sell', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*rewardFraction), 'Reward Sell')
     })
     .then(fetchOrders)
 }
@@ -244,11 +244,11 @@ const sell = () => {
   status(`Selling ${symbol}`)
   const price = data.spread.hi
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
-  limit(qty, price, `UpdateMe Open`)
+  limit(qty, price, `UpdateMe Open Sell`)
     .then(() => {
       stopClose('Buy', roundToTickSize(price/stopPxFraction))
-      stopLimitClose('Buy', roundToTickSize(price/riskFraction), roundToTickSize(price/riskFraction)-tickSize*5, 'Risk')
-      limitCloseIfTouched('Buy', roundToTickSize(price*rewardFraction), roundToTickSize(price*rewardFraction)-tickSize*20, 'Reward')
+      stopLimitClose('Buy', roundToTickSize(price/riskFraction), roundToTickSize(price/riskFraction)-tickSize*5, 'UpdateMe Risk Buy')
+      limitCloseIfTouched('Buy', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/rewardFraction), 'Reward Buy')
     })
     .then(fetchOrders)
 }
@@ -318,10 +318,12 @@ const updateOrders = () => {
 
 // api calls
 
+const dateId = () => Math.floor((Date.now())/1000)
+
 const limit = (qty, price, baseId) => {
   const side = qty>0 ? 'Buy' : 'Sell'
-  const id = `${baseId} Limit ${Date.now()}`
-  status(`Limit ${side} ${qty} at ${price}\n  '${id}'`)
+  const id = `${baseId} Limit ${dateId()}`
+  status(`Limit ${side} ${qty} at ${price} '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol, displayQty: 0,
       side: side, orderQty: qty, price: price, execInst: 'ParticipateDoNotInitiate'
@@ -330,7 +332,7 @@ const limit = (qty, price, baseId) => {
 
 const market = (qty) => {
   const side = qty>0 ? 'Buy' : 'Sell'
-  const id = `Market ${side} ${Date.now()}`
+  const id = `Market ${side} ${dateId()}`
   status(`Market ${side} ${qty}`)
   return bitmex.request('POST', '/order', {
       ordType: 'Market', clOrdID: id, symbol: symbol,
@@ -339,8 +341,8 @@ const market = (qty) => {
 }
 
 const closePosition = (price, baseId) => {
-  const id = `${baseId} ${Date.now()}`
-  status(`Closing at ${price}\n  '${id}'`)
+  const id = `${baseId} ${dateId()}`
+  status(`Closing at ${price} '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Limit', clOrdID: id, symbol: symbol,
       price: price, execInst: 'Close,ParticipateDoNotInitiate'
@@ -348,8 +350,8 @@ const closePosition = (price, baseId) => {
 }
 
 const closePositionNow = (price, now) => {
-  const id = `CloseNow ${Date.now()}`
-  status(`Closing now at ${price}\n  '${id}'`)
+  const id = `CloseNow ${dateId()}`
+  status(`Closing now at ${price} '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Market', clOrdID: id, symbol: symbol,
       execInst: 'Close'
@@ -357,8 +359,8 @@ const closePositionNow = (price, now) => {
 }
 
 const stopClose = (side, stopPx) => {
-  const id = `StopClose ${Date.now()}`
-  status(`StopClose ${side} at ${stopPx}\n  '${id}'`)
+  const id = `StopClose ${dateId()}`
+  status(`StopClose ${side} at ${stopPx} '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'Stop', clOrdID: id, symbol: symbol,
       side: side, stopPx: stopPx, execInst: 'Close,LastPrice'
@@ -366,8 +368,8 @@ const stopClose = (side, stopPx) => {
 }
 
 const stopLimitClose = (side, stopPx, price, baseId) => {
-  const id = `${baseId} ${Date.now()}`
-  status(`StopLimitClose ${side} at ${stopPx} for ${price}\n  '${id}'`)
+  const id = `${baseId} ${dateId()}`
+  status(`StopLimitClose ${side} at ${stopPx} for ${price} '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'StopLimit', clOrdID: id, symbol: symbol,
       side: side, price: price, stopPx: stopPx, execInst: 'Close,LastPrice'
@@ -375,7 +377,7 @@ const stopLimitClose = (side, stopPx, price, baseId) => {
 }
 
 const limitCloseIfTouched = (side, stopPx, price, baseId) => {
-  const id = `${baseId} ${Date.now()}`
+  const id = `${baseId} ${dateId()}`
   status(`limitCloseIfTouched ${side} at ${stopPx} for ${price}\n  '${id}'`)
   return bitmex.request('POST', '/order', {
       ordType: 'LimitIfTouched', clOrdID: id, symbol: symbol,
@@ -384,7 +386,7 @@ const limitCloseIfTouched = (side, stopPx, price, baseId) => {
 }
 
 const setOrderPrice = (clOrdID, newPrice, newStopPx) => {
-  status(`Updating\n  '${clOrdID}' ${newStopPx||''} to ${newPrice||''}`)
+  status(`Updating  '${clOrdID}' ${newStopPx||''} for ${newPrice||''}`)
   return bitmex
     .request('PUT', '/order', { origClOrdID: clOrdID , price: newPrice, stopPx: newStopPx })
     .catch(handleOrderUpdateError('setOrderPrice'))
@@ -397,7 +399,7 @@ const setStopPx = (clOrdID, newStopPx) => {
 
 const handleOrderUpdateError = (context) => e => {
   if (e.toString().includes('Invalid ordStatus')) {
-    log(`${context}: Invalid ordStatus: removing order\n  ${clOrdID}`)
+    log(`${context}: Invalid ordStatus: removing order ${clOrdID}`)
     data.openOrders = data.openOrders.filter(o => o.clOrdID != clOrdID)
     display()
   } else {
