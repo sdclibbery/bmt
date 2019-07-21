@@ -208,6 +208,11 @@ const actions = [
     display: () => term.wrap("  ^BCa'n'cel"),
     parse: key => { return {n:cancel,}[key] },
   },
+  { // Cancel all orders
+    active: () => data.openOrders.length>1,
+    display: () => term.wrap("  ^BCa'N'celAll"),
+    parse: key => { return {N:cancelAll,}[key] },
+  },
   { // Move order up/down
     active: () => !!selectedOrder(),
     display: () => term.wrap("  ^MOrder'Uu'p Order'Dd'own"),
@@ -302,6 +307,10 @@ const closeNow = () => {
 
 const cancel = () => {
   return cancelOrder(selectedOrder().clOrdID).then(fetchOrders)
+}
+
+const cancelAll = () => {
+  Promise.all(data.openOrders.map(o => cancelOrder(o.clOrdID))).then(fetchOrders)
 }
 
 const updateOrders = () => {
