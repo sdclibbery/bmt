@@ -9,13 +9,14 @@ const logger = require('./logger').createLogger(`bmt.log`)
 
 const options = parseOptions(logger, [
   { name: 'symbol', alias: 's', type: String, defaultValue: 'XBTUSD', description: 'BitMex market symbol eg XBTUSD, ETHUSD, LTCU19' },
+  { name: 'leverage', alias: 'l', type: Number, defaultValue: '10', description: 'Leverage' },
   { name: 'help', alias: 'h', type: Boolean, defaultValue: false, description: 'Show this help' },
 ])
 
 // constants
 
 const symbol = options.symbol
-const leverage = 10
+const leverage = options.leverage
 const openWalletFraction = 0.505
 const stopPxFraction = () => 1 - 0.008*25/leverage
 const riskFraction = () => 1 - 0.005*25/leverage

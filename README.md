@@ -58,8 +58,8 @@ x Move order needs to move BOTH price and stopPx if both are present
 x When limit buy or sell, create 2x or 3x limit take profit
 x Show which orders have triggered
 x CaNcel all
-* Stop etc levels respond to leverage
-* Allow setting leverage as cmd line option
+x Stop etc levels respond to leverage
+x Allow setting leverage as cmd line option
 * Need to use appropriate rounding when creating/modifying orders in other symbols
  x Get tick size
  x Use it for rounding
