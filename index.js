@@ -15,16 +15,17 @@ const options = parseOptions(logger, [
 // constants
 
 const symbol = options.symbol
-const leverage = 25
+const leverage = 10
 const openWalletFraction = 0.505
-const stopPxFraction = 0.995
-const riskFraction = 0.9975
-const rewardFraction = 1.02
+const stopPxFraction = () => 1 - 0.008*25/leverage
+const riskFraction = () => 1 - 0.005*25/leverage
+const rewardFraction = () => 1 + 0.04*25/leverage
 const moveFraction = 0.98
 const candleSize = 60*1000
 const volumeScale = 1e-5
 const velocityRelaxation = 0.9
 let tickSize = {"XBTUSD":0.5, "ETHUSD":0.05, "LTCU19":0.000005}[symbol] || 1
+const units = (x) => x/100000000
 
 // terminal setup and logging
 
@@ -64,8 +65,6 @@ const bitmex = new BitmexRequest({
     retryTimes: 2,
 })
 bitmex.request('POST', '/position/leverage', { symbol: symbol, leverage: leverage }).then(log(`Set leverage x${leverage}`)).catch(error('setLeverage'))
-
-const units = (x) => x/100000000
 
 // Data
 
@@ -217,9 +216,9 @@ const buy = () => {
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, `UpdateMe Open Buy`)
     .then(() => {
-      stopClose('Sell', roundToTickSize(price*stopPxFraction))
-      stopLimitClose('Sell', roundToTickSize(price*riskFraction), roundToTickSize(price*riskFraction)+tickSize*5, 'UpdateMe Risk Sell')
-      limitCloseIfTouched('Sell', roundToTickSize(price*Math.pow(rewardFraction, 0.8)), roundToTickSize(price*rewardFraction), 'Reward Sell')
+      stopClose('Sell', roundToTickSize(price*stopPxFraction()))
+      stopLimitClose('Sell', roundToTickSize(price*riskFraction()), roundToTickSize(price*riskFraction())+tickSize*5, 'UpdateMe Risk Sell')
+      limitCloseIfTouched('Sell', roundToTickSize(price*Math.pow(rewardFraction(), 0.8)), roundToTickSize(price*rewardFraction()), 'Reward Sell')
     })
     .then(fetchOrders)
 }
@@ -230,9 +229,9 @@ const sell = () => {
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   limit(qty, price, `UpdateMe Open Sell`)
     .then(() => {
-      stopClose('Buy', roundToTickSize(price/stopPxFraction))
-      stopLimitClose('Buy', roundToTickSize(price/riskFraction), roundToTickSize(price/riskFraction)-tickSize*5, 'UpdateMe Risk Buy')
-      limitCloseIfTouched('Buy', roundToTickSize(price/Math.pow(rewardFraction, 0.8)), roundToTickSize(price/rewardFraction), 'Reward Buy')
+      stopClose('Buy', roundToTickSize(price/stopPxFraction()))
+      stopLimitClose('Buy', roundToTickSize(price/riskFraction()), roundToTickSize(price/riskFraction())-tickSize*5, 'UpdateMe Risk Buy')
+      limitCloseIfTouched('Buy', roundToTickSize(price/Math.pow(rewardFraction(), 0.8)), roundToTickSize(price/rewardFraction()), 'Reward Buy')
     })
     .then(fetchOrders)
 }
@@ -242,7 +241,7 @@ const buyNow = () => {
   const price = data.spread.lo
   const qty = roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   market(qty)
-    .then(() => stopClose('Sell', roundToTickSize(price*stopPxFraction)))
+    .then(() => stopClose('Sell', roundToTickSize(price*stopPxFraction())))
     .then(fetchOrders)
 }
 
@@ -251,7 +250,7 @@ const sellNow = () => {
   const price = data.spread.hi
   const qty = -roundToTickSize(units(walletTotal())*leverage*price*openWalletFraction)
   market(qty)
-    .then(() => stopClose('Buy', roundToTickSize(price/stopPxFraction)))
+    .then(() => stopClose('Buy', roundToTickSize(price/stopPxFraction())))
     .then(fetchOrders)
 }
 
