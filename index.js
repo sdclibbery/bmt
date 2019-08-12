@@ -259,6 +259,7 @@ const orderUp = (speed) => {
   const o = selectedOrder()
   const newPrice = o.price && roundToTickSize(o.price / Math.pow(moveFraction, speed/20))
   const newStopPx = o.stopPx && roundToTickSize(o.stopPx / Math.pow(moveFraction, speed/20))
+  status(`Order up '${o.clOrdID}' ${newStopPx||''} for ${newPrice||''}`)
   return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
 }
 
@@ -266,6 +267,7 @@ const orderDown = (speed) => {
   const o = selectedOrder()
   const newPrice = o.price && roundToTickSize(o.price * Math.pow(moveFraction, speed/20))
   const newStopPx = o.stopPx && roundToTickSize(o.stopPx * Math.pow(moveFraction, speed/20))
+  status(`Order down '${o.clOrdID}' ${newStopPx||''} for ${newPrice||''}`)
   return setOrderPrice(o.clOrdID, newPrice, newStopPx).then(fetchOrders)
 }
 
@@ -374,7 +376,6 @@ const limitCloseIfTouched = (side, stopPx, price, baseId) => {
 }
 
 const setOrderPrice = (clOrdID, newPrice, newStopPx) => {
-  status(`Updating  '${clOrdID}' ${newStopPx||''} for ${newPrice||''}`)
   return bitmex
     .request('PUT', '/order', { origClOrdID: clOrdID , price: newPrice, stopPx: newStopPx })
     .catch(handleOrderUpdateError('setOrderPrice'))
