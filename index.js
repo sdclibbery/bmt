@@ -409,7 +409,9 @@ const fetchWallet = () => {
     .then(w => {
       const oldTotal = walletTotal()
       const newTotal = walletTotalCalc(w)
-      if (!!oldTotal && newTotal != oldTotal) {
+      if (!oldTotal) {
+        log(`Wallet total ${newTotal}`)
+      } else if (newTotal != oldTotal) {
         log(`Wallet total change ${oldTotal} -> ${newTotal}`)
       }
       data.wallet = w
