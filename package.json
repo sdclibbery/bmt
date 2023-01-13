@@ -20,6 +20,6 @@
     "bitmex-realtime-api": "^0.4.0",
     "bitmex-request": "0.0.2",
     "command-line-args": "^5.1.1",
-    "terminal-kit": "^1.28.18"
+    "terminal-kit": "^2.1.8"
   }
 }
